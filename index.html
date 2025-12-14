@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inforium Communication Canvas — Prototype (dev-friendly)</title>
+
+  <!--
+    ============================================================================
+    Inforium Communication Canvas — Single-file clickable prototype
+    ----------------------------------------------------------------------------
+    Doel van dit bestand:
+      - Direct te tonen (dubbelklik index.html)
+      - Super duidelijk voor devs/low-code builders:
+          * Config bovenin (phases/audiences/palette)
+          * Simpel datamodel (nodes in lanes)
+          * UI render functies (renderPalette / renderCanvas / renderNodes)
+          * Acties (save/load/export/report)
+      - Makkelijk om te migreren naar React/Glide/Softr:
+          * Alle data is JSON-achtig (state.nodes[])
+          * Lane = (phaseId, audienceId)
+          * Node = kaart met metadata (level/lang/timing/accessibility)
+    ----------------------------------------------------------------------------
+    Interactiepatronen:
+      - HTML5 drag & drop voor "palette -> lane" (MDN Drag & Drop API)  :contentReference[oaicite:3]{index=3}
+      - Basis toegankelijkheid-gedachte volgens WCAG 2.2 (labels, focus, toetsen) :contentReference[oaicite:4]{index=4}
+    ============================================================================
+  -->
+
+  <style>
+    /* =========================================================================
+       1) BRAND TOKENS (pas hier de Inforium kleuren aan)
+       -------------------------------------------------------------------------
+       TIP: Als jullie officiële Inforium-hexes beschikbaar zijn:
+            vervang alleen deze variabelen en klaar.
+       ========================================================================= */
+    :root{
+      /* Inforium-ish: fris, licht, zorg-UI */
+      --inf-blue: #1B66FF;       /* Primair */
+      --inf-blue-2: #0B3AAE;     /* Donker */
+      --inf-red: #E6342A;        /* Accent (actie/warning) */
+      --inf-green: #17A773;      /* Success */
+
+      --bg: #F6F8FC;
+      --panel: #FFFFFF;
+      --panel-2: #F2F5FB;
+      --text: #0F172A;
+      --muted: #52627A;
+      --line: #D9E1F2;
+
+      --shadow: 0 10px 28px rgba(16, 24, 40, .10);
+      --radius: 14px;
+      --radius2: 12px;
+
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--font);
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--bg) 65%);
+      color:var(--text);
+      overflow:hidden;
+    }
+
+    /* =========================================================================
+       2) LAYOUT SHELL
+       ========================================================================= */
+    header.appbar{
+      height:64px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 14px;
+      border-bottom:1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 2px 10px rgba(16,24,40,.05);
+    }
+
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      font-weight:800;
+    }
+    .logoMark{
+      width:34px; height:34px;
+      border-radius:10px;
+      background:
+        radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,.75) 0%, rgba(255,255,255,0) 70%),
+        linear-gradient(135deg, var(--inf-blue), var(--inf-blue-2));
+      box-shadow: 0 10px 18px rgba(27,102,255,.20);
+      border:1px solid rgba(27,102,255,.25);
+    }
+    .subtitle{
+      font-weight:600;
+      color:var(--muted);
+      font-size:12.5px;
+      margin-top:2px;
+    }
+
+    .toolbar{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    button, select, .pill{
+      font-family:var(--font);
+      border:1px solid var(--line);
+      background: var(--panel);
+      color:var(--text);
+      padding:9px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:.14s ease;
+    }
+    button:hover{ transform: translateY(-1px); box-shadow: 0 8px 16px rgba(16,24,40,.07); }
+    button:active{ transform: translateY(0px); box-shadow:none; }
+    button.primary{
+      border-color: rgba(27,102,255,.35);
+      background: rgba(27,102,255,.10);
+      color: var(--inf-blue-2);
+      font-weight:700;
+    }
+    button.danger{
+      border-color: rgba(230,52,42,.35);
+      background: rgba(230,52,42,.08);
+      color: #9B1B14;
+      font-weight:700;
+    }
+    .pill{
+      cursor:default;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-weight:600;
+    }
+
+    main.app{
+      height: calc(100% - 64px);
+      display:grid;
+      grid-template-columns: 330px 1fr 360px;
+      gap:12px;
+      padding:12px;
+    }
+
+    .panel{
+      background: var(--panel);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .panelHeader{
+      padding:12px 12px 10px;
+      border-bottom:1px solid var(--line);
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--panel-2) 100%);
+    }
+    .panelHeader h2{
+      margin:0;
+      font-size:13px;
+      letter-spacing:.2px;
+    }
+    .panelHeader .hint{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    /* =========================================================================
+       3) LEFT: PALETTE
+       ========================================================================= */
+    .search{
+      display:flex; gap:8px;
+      padding:10px;
+      border-bottom:1px solid var(--line);
+      background: var(--panel);
+    }
+    .search input{
+      width:100%;
+      border:1px solid var(--line);
+      background: #FFFFFF;
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+    }
+    .palette{
+      padding:10px;
+      overflow:auto;
+    }
+    .group{ margin:10px 0 14px; }
+    .groupTitle{
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:11px; color:var(--muted);
+      padding:6px 2px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+    }
+    .items{ display:grid; grid-template-columns: 1fr; gap:8px; }
+    .item{
+      background: #FFFFFF;
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding:10px;
+      cursor:grab;
+      user-select:none;
+    }
+    .item:active{ cursor:grabbing; }
+    .item .top{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      font-weight:800;
+      font-size:13px;
+    }
+    .tag{
+      font-size:11px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .item .desc{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    /* =========================================================================
+       4) CENTER: CANVAS
+       ========================================================================= */
+    .canvasTop{
+      display:flex; gap:10px; align-items:center;
+      padding:10px;
+      border-bottom:1px solid var(--line);
+      background: var(--panel);
+    }
+    .canvasTop .row{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;
+      color: var(--muted);
+      font-size:12px;
+    }
+    .canvas{
+      flex:1;
+      overflow:auto;
+      padding:12px;
+      background:
+        linear-gradient(transparent 23px, rgba(82,98,122,.10) 24px),
+        linear-gradient(90deg, transparent 23px, rgba(82,98,122,.10) 24px);
+      background-size: 24px 24px, 24px 24px;
+      background-color: var(--bg);
+    }
+
+    .phase{
+      border:1px solid var(--line);
+      border-radius: 16px;
+      background: #FFFFFF;
+      padding:10px;
+      margin-bottom:12px;
+    }
+    .phaseTitle{
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .phaseTitle h3{
+      margin:0; font-size:13px;
+    }
+    .phaseTitle .meta{
+      color:var(--muted); font-size:12px;
+    }
+
+    .lanes{
+      display:grid;
+      grid-template-columns: 185px 1fr;
+      gap:10px;
+      align-items:stretch;
+      margin-bottom:10px;
+    }
+    .laneLabel{
+      background: var(--panel-2);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      min-height: 120px;
+    }
+    .laneLabel b{ color: var(--text); }
+    .laneDrop{
+      position:relative;
+      background: #FFFFFF;
+      border:2px dashed rgba(27,102,255,.22);
+      border-radius: 14px;
+      min-height:120px;
+      overflow:hidden;
+    }
+    .laneDrop.dragover{
+      border-color: rgba(27,102,255,.60);
+      box-shadow: 0 0 0 4px rgba(27,102,255,.12) inset;
+    }
+    .laneHint{
+      position:absolute;
+      top:10px; left:10px;
+      font-size:12px; color:rgba(82,98,122,.85);
+      pointer-events:none;
+    }
+
+    /* Nodes */
+    .node{
+      position:absolute;
+      min-width: 200px;
+      max-width: 340px;
+      background: #FFFFFF;
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding:10px;
+      box-shadow: 0 12px 22px rgba(16,24,40,.10);
+      cursor:move;
+    }
+    .node.selected{
+      outline: 2px solid rgba(27,102,255,.55);
+      box-shadow: 0 0 0 6px rgba(27,102,255,.12), 0 12px 22px rgba(16,24,40,.10);
+    }
+    .node .hdr{
+      display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+      font-size:13px;
+      font-weight:900;
+      color: var(--text);
+    }
+    .node .kind{
+      font-size:11px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(27,102,255,.25);
+      background: rgba(27,102,255,.08);
+      color: var(--inf-blue-2);
+      white-space:nowrap;
+    }
+    .node .body{
+      margin-top:6px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+    .node .chips{
+      margin-top:8px;
+      display:flex; gap:6px; flex-wrap:wrap;
+    }
+    .chip{
+      font-size:11px;
+      padding:3px 7px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+
+    .footerHelp{
+      padding:10px 12px;
+      border-top:1px solid var(--line);
+      background: var(--panel);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    /* =========================================================================
+       5) RIGHT: INSPECTOR
+       ========================================================================= */
+    .inspector{
+      padding:10px;
+      overflow:auto;
+    }
+    .field{ margin:10px 0; }
+    .field label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+      font-weight:700;
+    }
+    .field input, .field textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background: #FFFFFF;
+      color:var(--text);
+      padding:10px;
+      border-radius:12px;
+      outline:none;
+    }
+    .field textarea{ min-height:92px; resize:vertical; }
+    .row2{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+    .small{ font-size:12px; color:var(--muted); line-height:1.45; }
+
+    /* Modal */
+    .modalBack{
+      position:fixed; inset:0;
+      background: rgba(15,23,42,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .modal{
+      width:min(880px, 100%);
+      background: #FFFFFF;
+      border:1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal header{
+      padding:12px 14px;
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--panel-2) 100%);
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .modal header h3{ margin:0; font-size:14px; }
+    .modalHint{ padding:0 14px 10px; color:var(--muted); font-size:12px; }
+    .modalBody{
+      padding:12px 14px;
+      max-height: 70vh;
+      overflow:auto;
+      background: var(--bg);
+    }
+    pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background: #FFFFFF;
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding:12px;
+      margin:0;
+      color: #0F172A;
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    /* Responsive */
+    @media (max-width: 1180px){
+      main.app{ grid-template-columns: 320px 1fr; }
+      .panel.right{ display:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- =========================================================================
+       APP BAR
+       ========================================================================= -->
+  <header class="appbar">
+    <div class="brand" aria-label="Inforium Communication Canvas">
+      <span class="logoMark" aria-hidden="true"></span>
+      <div>
+        <div>Inforium Communication Canvas</div>
+        <div class="subtitle">Klikbaar prototype — drag & drop zorgpad + doelgroep-varianten</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <span class="pill" id="statusPill">Niet opgeslagen</span>
+      <button class="primary" id="btnSave">Opslaan</button>
+      <button id="btnLoad">Laden</button>
+      <button id="btnExport">Export JSON</button>
+      <button id="btnReport">Rapport preview</button>
+      <button class="danger" id="btnReset">Reset</button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN LAYOUT: LEFT (palette) | CENTER (canvas) | RIGHT (inspector)
+       ========================================================================= -->
+  <main class="app">
+    <!-- LEFT: Palette -->
+    <section class="panel left" aria-label="Blokkenbibliotheek">
+      <div class="search">
+        <input id="search" type="search" placeholder="Zoek blokken… (bv. BeterDichtbij, Inforium, QR, folder)" aria-label="Zoeken in blokkenbibliotheek">
+      </div>
+      <div class="palette" id="palette"></div>
+      <div class="footerHelp">
+        <b>Gebruik:</b> sleep een blok naar een lane. <br/>
+        <b>Node:</b> versleep • dubbelklik om te bewerken • Delete om te verwijderen.
+      </div>
+    </section>
+
+    <!-- CENTER: Canvas -->
+    <section class="panel center" aria-label="Canvas">
+      <div class="canvasTop">
+        <div class="row">
+          <span><b>Lens (doelgroep):</b></span>
+          <select id="lens" aria-label="Selecteer doelgroep lens">
+            <option value="all">Alles</option>
+            <option value="normaal">Normaal</option>
+            <option value="anderstalig">Anderstalig</option>
+            <option value="laaggeletterd">Laaggeletterd</option>
+            <option value="beperkte_gv">Beperkte gezondheidsvaardigheden</option>
+            <option value="blind_slechtziend">Blind / slechtziend</option>
+            <option value="slechthorend">Slechthorend</option>
+            <option value="digitaal_savvy">Digitaal savvy</option>
+            <option value="hoogopgeleid">Hoogopgeleid</option>
+          </select>
+
+          <span class="pill" id="countPill">0 nodes</span>
+          <span class="pill">Lane = fase × doelgroep</span>
+        </div>
+      </div>
+
+      <div class="canvas" id="canvas" aria-label="Canvas editor"></div>
+
+      <div class="footerHelp">
+        <b>Output:</b> Export JSON + Rapport preview = startpunt voor implementatie/koppelingen.
+      </div>
+    </section>
+
+    <!-- RIGHT: Inspector -->
+    <section class="panel right" aria-label="Inspector">
+      <div class="panelHeader">
+        <h2>Inspector</h2>
+        <div class="hint">Selecteer een node om eigenschappen te wijzigen (taalniveau, talen, timing, toegankelijkheid).</div>
+      </div>
+
+      <div class="inspector" id="inspector">
+        <div class="small" id="noSelection">
+          Geen node geselecteerd.<br/><br/>
+          <b>Low-code mapping (hint):</b><br/>
+          1) Nodes = tabel/collection<br/>
+          2) phaseId + audienceId = lane/filter<br/>
+          3) Inspector = edit form op geselecteerde record<br/>
+          4) Export = JSON view / API endpoint
+        </div>
+
+        <div id="inspectorForm" style="display:none;">
+          <div class="field">
+            <label>Type</label>
+            <input id="fKind" disabled />
+          </div>
+
+          <div class="field">
+            <label>Titel</label>
+            <input id="fTitle" />
+          </div>
+
+          <div class="field row2">
+            <div>
+              <label>Taalniveau</label>
+              <input id="fLevel" placeholder="bv. A2 / B1 / B2" />
+            </div>
+            <div>
+              <label>Talen</label>
+              <input id="fLang" placeholder="bv. NL, EN, TR" />
+            </div>
+          </div>
+
+          <div class="field row2">
+            <div>
+              <label>Timing</label>
+              <input id="fTiming" placeholder="bv. T-7, T-2, T0" />
+            </div>
+            <div>
+              <label>Owner</label>
+              <input id="fOwner" placeholder="bv. poli-assistentie" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Omschrijving / inhoud</label>
+            <textarea id="fBody" placeholder="Korte uitleg, tekst of instructie…"></textarea>
+          </div>
+
+          <div class="field row2">
+            <div>
+              <label>Toegankelijkheid: alt-tekst</label>
+              <input id="fAlt" placeholder="Voor visueel" />
+            </div>
+            <div>
+              <label>Toegankelijkheid: transcript</label>
+              <input id="fTranscript" placeholder="link/ja/nee" />
+            </div>
+          </div>
+
+          <div class="field row2">
+            <button class="primary" id="btnApply">Toepassen</button>
+            <button class="danger" id="btnDelete">Verwijderen</button>
+          </div>
+
+          <div class="small">
+            <b>Keyboard:</b> Enter = selecteer • Delete = verwijder • Esc = sluit modal
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL -->
+  <div class="modalBack" id="modalBack" role="dialog" aria-modal="true">
+    <div class="modal">
+      <header>
+        <h3 id="modalTitle">Output</h3>
+        <button id="btnCloseModal">Sluiten</button>
+      </header>
+      <div class="modalHint" id="modalHint">Preview / export</div>
+      <div class="modalBody">
+        <pre id="modalPre"></pre>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================================
+   6) CONFIG — dit is wat je 1-op-1 kunt overzetten naar een echte app
+   ----------------------------------------------------------------------------
+   In low-code:
+     - PHASES = tabel/collection "Phases"
+     - AUDIENCES = tabel/collection "Audiences"
+     - PALETTE_GROUPS = bibliotheek / templates
+   ========================================================================== */
+
+const PHASES = [
+  { id: "vooraf",   title: "Vooraf (T-14 → T-1)" },
+  { id: "dagzelf",  title: "Dag van afspraak (T0)" },
+  { id: "nazorg",   title: "Nazorg (T0 → T+7)" },
+  { id: "followup", title: "Follow-up (T+7 →)" },
+];
+
+const AUDIENCES = [
+  { id: "normaal",          label: "Normaal", hint: "Standaard info, normale taal." },
+  { id: "anderstalig",      label: "Anderstalig", hint: "Meertalig + visuele ondersteuning." },
+  { id: "laaggeletterd",    label: "Laaggeletterd", hint: "A2/B1 + pictogrammen + korte zinnen." },
+  { id: "beperkte_gv",      label: "Beperkte gezondheidsvaardigheden", hint: "Check begrip + herhaling + eenvoudig." },
+  { id: "blind_slechtziend",label: "Blind/slechtziend", hint: "Alt-tekst, TTS, contrast, structuur." },
+  { id: "slechthorend",     label: "Slechthorend", hint: "Ondertiteling, transcript, visuele cues." },
+  { id: "digitaal_savvy",   label: "Digitaal savvy", hint: "Self-service, deeplinks, reminders." },
+  { id: "hoogopgeleid",     label: "Hoogopgeleid", hint: "Meer detail, verdieping." },
+];
+
+const PALETTE_GROUPS = [
+  {
+    title: "Inforium assets",
+    items: [
+      mkItem("inforium_item", "Inforium item", "Betrouwbare patiëntinfo (contextueel).", "Inforium"),
+      mkItem("inforium_set", "Inforium bundel", "Set van meerdere Inforiums (zorgpadfase).", "Inforium"),
+      mkItem("studio_video", "Inforium Studio video", "Hybride AI-video met ondertiteling/varianten.", "Studio"),
+      mkItem("fragment", "Videofragment", "Herbruikbaar fragment (bv. route, voorbereiding).", "Studio"),
+    ]
+  },
+  {
+    title: "Kanalen",
+    items: [
+      mkItem("mondeling", "Mondeling / fysiek", "Balie, arts, verpleegkundige, telefoon.", "Kanaal"),
+      mkItem("papier", "Folder / papier", "Print + QR, meegeven of opsturen.", "Kanaal"),
+      mkItem("website", "Website", "Pagina met basisinfo + links.", "Kanaal"),
+      mkItem("portaal", "Portaal / PGO", "EPD-portaal of PGO berichten.", "Kanaal"),
+      mkItem("beterdichtbij", "BeterDichtbij", "Bericht + deeplink + reminder.", "App"),
+      mkItem("luscii", "Luscii", "Monitoring / taken / voorlichting.", "App"),
+      mkItem("journey", "Patient Journey app", "Zorgpad-app met stappen en notificaties.", "App"),
+      mkItem("indiveo", "Indiveo (content)", "Externe content/video provider.", "Content"),
+      mkItem("medify", "Medify (complex)", "Zorgproces/patiëntinteractie (placeholder).", "Complex"),
+      mkItem("consultassist", "Consultassistent", "Voorbereiding consult + samenvatting.", "Complex"),
+      mkItem("vragenlijst", "Vragenlijsten / intake", "Formulieren, PROMs, triage.", "Tool"),
+    ]
+  },
+  {
+    title: "Acties",
+    items: [
+      mkItem("send_link", "Stuur link", "E-mail/SMS/app met deeplink.", "Actie"),
+      mkItem("send_qr", "Stuur QR", "QR-code naar mobiel/print.", "Actie"),
+      mkItem("reminder", "Reminder", "T-2 of T-1 reminder met 1 klik actie.", "Actie"),
+      mkItem("check_begrip", "Check begrip", "Teach-back of 1–3 vragen.", "Actie"),
+      mkItem("feedback", "Feedback", "Korte evaluatie na afloop.", "Actie"),
+      mkItem("fallback", "Fallback pad", "Als kanaal faalt: alternatief kanaal.", "Actie"),
+    ]
+  }
+];
+
+function mkItem(kind, title, desc, tag){ return { kind, title, desc, tag }; }
+
+/* ============================================================================
+   7) STATE + DATA MODEL
+   ----------------------------------------------------------------------------
+   Node model (record):
+     {
+       id, kind, tag, title, body,
+       phaseId, audienceId, x, y,
+       level, lang, timing, owner,
+       alt, transcript
+     }
+   ========================================================================== */
+let state = {
+  nodes: [],
+  selectedNodeId: null,
+  dirty: false,
+};
+
+const STORAGE_KEY = "inforium_canvas_v2_devfriendly";
+
+/* ============================================================================
+   8) DOM refs
+   ========================================================================== */
+const els = {
+  palette: document.getElementById("palette"),
+  canvas: document.getElementById("canvas"),
+  search: document.getElementById("search"),
+  lens: document.getElementById("lens"),
+  countPill: document.getElementById("countPill"),
+  statusPill: document.getElementById("statusPill"),
+
+  inspectorForm: document.getElementById("inspectorForm"),
+  noSelection: document.getElementById("noSelection"),
+
+  fKind: document.getElementById("fKind"),
+  fTitle: document.getElementById("fTitle"),
+  fLevel: document.getElementById("fLevel"),
+  fLang: document.getElementById("fLang"),
+  fTiming: document.getElementById("fTiming"),
+  fOwner: document.getElementById("fOwner"),
+  fBody: document.getElementById("fBody"),
+  fAlt: document.getElementById("fAlt"),
+  fTranscript: document.getElementById("fTranscript"),
+  btnApply: document.getElementById("btnApply"),
+  btnDelete: document.getElementById("btnDelete"),
+
+  btnSave: document.getElementById("btnSave"),
+  btnLoad: document.getElementById("btnLoad"),
+  btnExport: document.getElementById("btnExport"),
+  btnReport: document.getElementById("btnReport"),
+  btnReset: document.getElementById("btnReset"),
+
+  modalBack: document.getElementById("modalBack"),
+  modalTitle: document.getElementById("modalTitle"),
+  modalHint: document.getElementById("modalHint"),
+  modalPre: document.getElementById("modalPre"),
+  btnCloseModal: document.getElementById("btnCloseModal"),
+};
+
+/* ============================================================================
+   9) RENDER: Palette
+   ========================================================================== */
+function renderPalette(filterText=""){
+  els.palette.innerHTML = "";
+  const q = filterText.trim().toLowerCase();
+
+  PALETTE_GROUPS.forEach(group => {
+    const groupEl = document.createElement("div");
+    groupEl.className = "group";
+
+    const title = document.createElement("div");
+    title.className = "groupTitle";
+    title.innerHTML = `<span>${escapeHtml(group.title)}</span><span>${group.items.length}</span>`;
+    groupEl.appendChild(title);
+
+    const itemsEl = document.createElement("div");
+    itemsEl.className = "items";
+
+    group.items
+      .filter(it => !q || (it.title + " " + it.desc + " " + it.kind + " " + it.tag).toLowerCase().includes(q))
+      .forEach(it => {
+        const itemEl = document.createElement("div");
+        itemEl.className = "item";
+        itemEl.setAttribute("draggable", "true");
+        itemEl.dataset.payload = JSON.stringify(it);
+
+        itemEl.innerHTML = `
+          <div class="top">
+            <span>${escapeHtml(it.title)}</span>
+            <span class="tag">${escapeHtml(it.tag)}</span>
+          </div>
+          <div class="desc">${escapeHtml(it.desc)}</div>
+        `;
+
+        // HTML5 DnD: palette item -> lane drop target :contentReference[oaicite:5]{index=5}
+        itemEl.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("application/json", itemEl.dataset.payload);
+          e.dataTransfer.effectAllowed = "copy";
+        });
+
+        itemsEl.appendChild(itemEl);
+      });
+
+    groupEl.appendChild(itemsEl);
+    els.palette.appendChild(groupEl);
+  });
+}
+
+/* ============================================================================
+   10) RENDER: Canvas (phases + lanes)
+   ========================================================================== */
+function renderCanvas(){
+  els.canvas.innerHTML = "";
+
+  PHASES.forEach(phase => {
+    const phaseEl = document.createElement("section");
+    phaseEl.className = "phase";
+    phaseEl.dataset.phaseId = phase.id;
+
+    const hdr = document.createElement("div");
+    hdr.className = "phaseTitle";
+    hdr.innerHTML = `
+      <h3>${escapeHtml(phase.title)}</h3>
+      <div class="meta">Sleep blokken naar een lane</div>
+    `;
+    phaseEl.appendChild(hdr);
+
+    AUDIENCES.forEach(aud => {
+      const lanes = document.createElement("div");
+      lanes.className = "lanes";
+
+      const label = document.createElement("div");
+      label.className = "laneLabel";
+      label.innerHTML = `<b>${escapeHtml(aud.label)}</b><br/>${escapeHtml(aud.hint)}`;
+      lanes.appendChild(label);
+
+      const drop = document.createElement("div");
+      drop.className = "laneDrop";
+      drop.tabIndex = 0;
+      drop.dataset.phaseId = phase.id;
+      drop.dataset.audienceId = aud.id;
+
+      const hint = document.createElement("div");
+      hint.className = "laneHint";
+      hint.textContent = "Drop hier…";
+      drop.appendChild(hint);
+
+      drop.addEventListener("dragover", (e) => {
+        e.preventDefault();          // required for drop
+        drop.classList.add("dragover");
+        e.dataTransfer.dropEffect = "copy";
+      });
+      drop.addEventListener("dragleave", () => drop.classList.remove("dragover"));
+
+      drop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        drop.classList.remove("dragover");
+
+        const payload = e.dataTransfer.getData("application/json");
+        if(!payload) return;
+
+        const it = JSON.parse(payload);
+        const rect = drop.getBoundingClientRect();
+        const x = (e.clientX - rect.left) + drop.scrollLeft;
+        const y = (e.clientY - rect.top) + drop.scrollTop;
+
+        addNode({
+          kind: it.kind,
+          tag: it.tag,
+          title: it.title,
+          body: it.desc,
+          phaseId: phase.id,
+          audienceId: aud.id,
+          x: clamp(x-100, 10, rect.width-210),
+          y: clamp(y-24, 32, rect.height-80),
+          level: suggestLevel(aud.id),
+          lang: suggestLang(aud.id),
+          timing: suggestTiming(phase.id),
+          transcript: (it.kind === "studio_video" || it.kind === "fragment") ? "ja" : ""
+        });
+      });
+
+      lanes.appendChild(drop);
+      phaseEl.appendChild(lanes);
+    });
+
+    els.canvas.appendChild(phaseEl);
+  });
+
+  renderNodes();
+  applyLens();
+}
+
+/* ============================================================================
+   11) RENDER: Nodes (absolute positioned cards inside lane)
+   ========================================================================== */
+function renderNodes(){
+  document.querySelectorAll(".laneDrop .node").forEach(n => n.remove());
+
+  const lanes = [...document.querySelectorAll(".laneDrop")];
+
+  for (const node of state.nodes){
+    const lane = lanes.find(l => l.dataset.phaseId === node.phaseId && l.dataset.audienceId === node.audienceId);
+    if(!lane) continue;
+
+    const hint = lane.querySelector(".laneHint");
+    if (hint) hint.style.display = "none";
+
+    const el = document.createElement("div");
+    el.className = "node";
+    el.tabIndex = 0;
+    el.dataset.nodeId = node.id;
+    el.style.left = node.x + "px";
+    el.style.top = node.y + "px";
+
+    el.innerHTML = `
+      <div class="hdr">
+        <span>${escapeHtml(node.title)}</span>
+        <span class="kind">${escapeHtml(node.tag || node.kind)}</span>
+      </div>
+      <div class="body">${escapeHtml(node.body || "")}</div>
+      <div class="chips">
+        ${node.level ? `<span class="chip">Niveau: ${escapeHtml(node.level)}</span>` : ``}
+        ${node.lang ? `<span class="chip">Taal: ${escapeHtml(node.lang)}</span>` : ``}
+        ${node.timing ? `<span class="chip">Timing: ${escapeHtml(node.timing)}</span>` : ``}
+        ${node.transcript ? `<span class="chip">Transcript: ${escapeHtml(node.transcript)}</span>` : ``}
+      </div>
+    `;
+
+    el.addEventListener("click", () => selectNode(node.id));
+    el.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") selectNode(node.id);
+      if (ev.key === "Delete") deleteNode(node.id);
+    });
+    el.addEventListener("dblclick", () => { selectNode(node.id); setTimeout(()=>els.fTitle.focus(), 0); });
+
+    makeMovable(el, lane);
+    lane.appendChild(el);
+  }
+
+  document.querySelectorAll(".laneDrop").forEach(lane => {
+    const has = lane.querySelector(".node");
+    const hint = lane.querySelector(".laneHint");
+    if (hint) hint.style.display = has ? "none" : "block";
+  });
+
+  updateSelectedStyles();
+  updateCounts();
+}
+
+/* ============================================================================
+   12) Node moving (simple mouse drag inside lane)
+   ========================================================================== */
+function makeMovable(nodeEl, laneEl){
+  let dragging = false;
+  let startX=0, startY=0, origX=0, origY=0;
+
+  nodeEl.addEventListener("mousedown", (e) => {
+    dragging = true;
+    selectNode(nodeEl.dataset.nodeId);
+    startX = e.clientX;
+    startY = e.clientY;
+
+    const n = getNode(nodeEl.dataset.nodeId);
+    origX = n.x; origY = n.y;
+
+    nodeEl.style.cursor = "grabbing";
+    e.preventDefault();
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if(!dragging) return;
+
+    const id = nodeEl.dataset.nodeId;
+    const n = getNode(id);
+    const rect = laneEl.getBoundingClientRect();
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    n.x = clamp(origX + dx, 10, rect.width - 210);
+    n.y = clamp(origY + dy, 32, rect.height - 80);
+
+    nodeEl.style.left = n.x + "px";
+    nodeEl.style.top  = n.y + "px";
+    setDirty(true);
+  });
+
+  window.addEventListener("mouseup", () => {
+    if(!dragging) return;
+    dragging = false;
+    nodeEl.style.cursor = "move";
+  });
+}
+
+/* ============================================================================
+   13) State operations
+   ========================================================================== */
+function addNode(partial){
+  const id = cryptoId();
+  const node = {
+    id,
+    kind: partial.kind || "blok",
+    tag: partial.tag || "Blok",
+    title: partial.title || "Nieuw blok",
+    body: partial.body || "",
+    phaseId: partial.phaseId,
+    audienceId: partial.audienceId,
+    x: partial.x ?? 20,
+    y: partial.y ?? 40,
+    level: partial.level || "",
+    lang: partial.lang || "",
+    timing: partial.timing || "",
+    owner: partial.owner || "",
+    alt: partial.alt || "",
+    transcript: partial.transcript || "",
+  };
+  state.nodes.push(node);
+  selectNode(id);
+  renderNodes();
+  setDirty(true);
+}
+
+function getNode(id){ return state.nodes.find(n => n.id === id); }
+
+function selectNode(id){
+  state.selectedNodeId = id;
+  updateInspector();
+  updateSelectedStyles();
+}
+
+function updateSelectedStyles(){
+  document.querySelectorAll(".node").forEach(el => {
+    el.classList.toggle("selected", el.dataset.nodeId === state.selectedNodeId);
+  });
+}
+
+function updateInspector(){
+  const n = getNode(state.selectedNodeId);
+  if(!n){
+    els.noSelection.style.display = "block";
+    els.inspectorForm.style.display = "none";
+    return;
+  }
+  els.noSelection.style.display = "none";
+  els.inspectorForm.style.display = "block";
+
+  els.fKind.value = n.kind;
+  els.fTitle.value = n.title;
+  els.fLevel.value = n.level;
+  els.fLang.value = n.lang;
+  els.fTiming.value = n.timing;
+  els.fOwner.value = n.owner;
+  els.fBody.value = n.body;
+  els.fAlt.value = n.alt;
+  els.fTranscript.value = n.transcript;
+}
+
+function applyInspector(){
+  const n = getNode(state.selectedNodeId);
+  if(!n) return;
+
+  n.title = els.fTitle.value.trim() || n.title;
+  n.level = els.fLevel.value.trim();
+  n.lang = els.fLang.value.trim();
+  n.timing = els.fTiming.value.trim();
+  n.owner = els.fOwner.value.trim();
+  n.body = els.fBody.value.trim();
+  n.alt = els.fAlt.value.trim();
+  n.transcript = els.fTranscript.value.trim();
+
+  renderNodes();
+  setDirty(true);
+}
+
+function deleteNode(id){
+  const idx = state.nodes.findIndex(n => n.id === id);
+  if(idx < 0) return;
+  state.nodes.splice(idx, 1);
+  if(state.selectedNodeId === id) state.selectedNodeId = null;
+  renderNodes();
+  updateInspector();
+  setDirty(true);
+}
+
+function resetAll(){
+  state = { nodes: [], selectedNodeId: null, dirty:false };
+  renderCanvas();
+  updateInspector();
+  setDirty(false);
+}
+
+/* ============================================================================
+   14) Lens (filter lanes by audience)
+   ========================================================================== */
+function applyLens(){
+  const lens = els.lens.value;
+  document.querySelectorAll(".lanes").forEach(row => {
+    const drop = row.querySelector(".laneDrop");
+    if(!drop) return;
+    const aud = drop.dataset.audienceId;
+    row.style.display = (lens === "all" || lens === aud) ? "grid" : "none";
+  });
+}
+
+/* ============================================================================
+   15) Save/Load/Export/Report
+   ========================================================================== */
+function save(){
+  const payload = { version: 2, savedAt: new Date().toISOString(), nodes: state.nodes };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  setDirty(false);
+  toast("Opgeslagen (localStorage).");
+}
+
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){ toast("Geen opgeslagen canvas gevonden."); return; }
+  const payload = JSON.parse(raw);
+  state.nodes = payload.nodes || [];
+  state.selectedNodeId = null;
+  renderNodes();
+  updateInspector();
+  setDirty(false);
+  toast("Canvas geladen.");
+}
+
+function exportJson(){
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    phases: PHASES,
+    audiences: AUDIENCES,
+    nodes: state.nodes
+  };
+  openModal("Export JSON", "Kopieer dit JSON (later: download of API).", JSON.stringify(payload, null, 2));
+}
+
+function reportPreview(){
+  openModal("Rapport preview", "Samenvatting voor implementatie (concept).", buildReport());
+}
+
+function buildReport(){
+  const byPhase = Object.fromEntries(PHASES.map(p => [p.id, []]));
+  const byAudience = Object.fromEntries(AUDIENCES.map(a => [a.id, []]));
+
+  for (const n of state.nodes){
+    if (byPhase[n.phaseId]) byPhase[n.phaseId].push(n);
+    if (byAudience[n.audienceId]) byAudience[n.audienceId].push(n);
+  }
+
+  const lines = [];
+  lines.push("INFORIUM COMMUNICATION CANVAS — RAPPORT (concept)");
+  lines.push("===============================================");
+  lines.push(`Datum: ${new Date().toLocaleString()}`);
+  lines.push(`Totaal nodes: ${state.nodes.length}`);
+  lines.push("");
+
+  lines.push("1) Overzicht per fase");
+  for (const p of PHASES){
+    lines.push(`- ${p.title}: ${byPhase[p.id].length} blok(ken)`);
+  }
+  lines.push("");
+
+  lines.push("2) Overzicht per doelgroep");
+  for (const a of AUDIENCES){
+    lines.push(`- ${a.label}: ${byAudience[a.id].length} blok(ken)`);
+  }
+  lines.push("");
+
+  lines.push("3) Gaps & risico's (heuristiek)");
+  const gaps = [];
+  for (const n of state.nodes){
+    if (n.audienceId === "slechthorend" && (n.kind === "studio_video" || n.kind === "fragment") && !n.transcript){
+      gaps.push(`- Slechthorend: "${n.title}" lijkt video/fragment zonder transcript.`);
+    }
+    if (n.audienceId === "blind_slechtziend" && !n.alt){
+      gaps.push(`- Blind/slechtziend: "${n.title}" mist alt-tekst / audiovariant.`);
+    }
+    if ((n.audienceId === "laaggeletterd" || n.audienceId === "beperkte_gv") && !/A2|B1/i.test(n.level || "")){
+      gaps.push(`- Begrijpelijkheid: "${n.title}" voor ${n.audienceId} mist A2/B1 instelling.`);
+    }
+  }
+  if (!gaps.length) gaps.push("- Geen opvallende gaps (op basis van deze simpele checks).");
+  lines.push(gaps.slice(0,20).join("\n"));
+  lines.push("");
+
+  lines.push("4) To-do implementatie (voorbeeld)");
+  lines.push("- Koppel kanalen (portaal/app) via connectoren of templates.");
+  lines.push("- Maak varianten (A2/B1, meertalig, transcript/alt).");
+  lines.push("- Leg ownership vast per stap (wie verstuurt wat wanneer).");
+  lines.push("- Test 1 zorgpad end-to-end met 2–3 doelgroepen.");
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/* ============================================================================
+   16) Modal
+   ========================================================================== */
+function openModal(title, hint, text){
+  els.modalTitle.textContent = title;
+  els.modalHint.textContent = hint;
+  els.modalPre.textContent = text;
+  els.modalBack.style.display = "flex";
+}
+function closeModal(){ els.modalBack.style.display = "none"; }
+
+/* ============================================================================
+   17) UI helpers
+   ========================================================================== */
+function setDirty(v){
+  state.dirty = v;
+  els.statusPill.textContent = v ? "Niet opgeslagen" : "Opgeslagen";
+  els.statusPill.style.borderColor = v ? "rgba(230,52,42,.30)" : "rgba(23,167,115,.30)";
+  els.statusPill.style.background = v ? "rgba(230,52,42,.06)" : "rgba(23,167,115,.07)";
+}
+
+function updateCounts(){ els.countPill.textContent = `${state.nodes.length} nodes`; }
+
+function toast(msg){
+  els.statusPill.textContent = msg;
+  setTimeout(() => {
+    els.statusPill.textContent = state.dirty ? "Niet opgeslagen" : "Opgeslagen";
+  }, 1400);
+}
+
+function escapeHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function cryptoId(){
+  return (crypto?.randomUUID?.() || ("id-" + Math.random().toString(16).slice(2))).slice(0, 18);
+}
+
+/* ============================================================================
+   18) Smart defaults (kan later rules/DMN worden)
+   ========================================================================== */
+function suggestLevel(audienceId){
+  if (audienceId === "laaggeletterd") return "A2/B1";
+  if (audienceId === "beperkte_gv") return "B1";
+  if (audienceId === "hoogopgeleid") return "B2";
+  return "";
+}
+function suggestLang(audienceId){
+  if (audienceId === "anderstalig") return "NL + (auto)";
+  return "NL";
+}
+function suggestTiming(phaseId){
+  if (phaseId === "vooraf") return "T-7";
+  if (phaseId === "dagzelf") return "T0";
+  if (phaseId === "nazorg") return "T+1";
+  return "";
+}
+
+/* ============================================================================
+   19) Events
+   ========================================================================== */
+els.search.addEventListener("input", () => renderPalette(els.search.value));
+els.lens.addEventListener("change", applyLens);
+
+els.btnApply.addEventListener("click", applyInspector);
+els.btnDelete.addEventListener("click", () => { if(state.selectedNodeId) deleteNode(state.selectedNodeId); });
+
+els.btnSave.addEventListener("click", save);
+els.btnLoad.addEventListener("click", load);
+els.btnExport.addEventListener("click", exportJson);
+els.btnReport.addEventListener("click", reportPreview);
+els.btnReset.addEventListener("click", () => { if(confirm("Alles resetten?")) resetAll(); });
+
+els.btnCloseModal.addEventListener("click", closeModal);
+els.modalBack.addEventListener("click", (e) => { if(e.target === els.modalBack) closeModal(); });
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Delete" && state.selectedNodeId) deleteNode(state.selectedNodeId);
+});
+
+/* ============================================================================
+   20) Init
+   ========================================================================== */
+renderPalette("");
+renderCanvas();
+updateInspector();
+setDirty(false);
+
+/* Preload mini demo */
+addNode({
+  kind:"inforium_item", tag:"Inforium", title:"Voorbereiding poli (B1)",
+  body:"Wat meenemen + praktische tips. Link/QR naar mobiel.",
+  phaseId:"vooraf", audienceId:"normaal",
+  x:24, y:44, level:"B1", lang:"NL", timing:"T-7"
+});
+addNode({
+  kind:"reminder", tag:"Actie", title:"Reminder + 1-klik afzeggen",
+  body:"T-2 reminder via app met knoppen: Bevestig / Wijzig / Zeg af.",
+  phaseId:"vooraf", audienceId:"digitaal_savvy",
+  x:24, y:44, lang:"NL", timing:"T-2"
+});
+addNode({
+  kind:"studio_video", tag:"Studio", title:"Video: route + aanmelden",
+  body:"Korte video met ondertiteling + transcript.",
+  phaseId:"dagzelf", audienceId:"slechthorend",
+  x:24, y:44, level:"B1", lang:"NL", timing:"T0", transcript:"ja"
+});
+setDirty(true);
+</script>
+</body>
+</html>
