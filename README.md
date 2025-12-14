@@ -1,9 +1,4 @@
-Top 👍
-Hieronder staat een **volledig uitgewerkte README.md** die je **1-op-1** naast `index.html` kunt zetten en kunt delen met ontwikkelaars, low-code bouwers of externe partners.
 
-Ik heb ’m geschreven als **praktische developer handover**: wat is het, hoe werkt het, waar begin je, en hoe bouw je door.
-
----
 
 # Inforium Communication Canvas – Prototype
 
