@@ -3,144 +3,112 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Inforium Communication Canvas — Prototype (dev-friendly)</title>
-
-  <!--
-    ============================================================================
-    Inforium Communication Canvas — Single-file clickable prototype
-    ----------------------------------------------------------------------------
-    Doel van dit bestand:
-      - Direct te tonen (dubbelklik index.html)
-      - Super duidelijk voor devs/low-code builders:
-          * Config bovenin (phases/audiences/palette)
-          * Simpel datamodel (nodes in lanes)
-          * UI render functies (renderPalette / renderCanvas / renderNodes)
-          * Acties (save/load/export/report)
-      - Makkelijk om te migreren naar React/Glide/Softr:
-          * Alle data is JSON-achtig (state.nodes[])
-          * Lane = (phaseId, audienceId)
-          * Node = kaart met metadata (level/lang/timing/accessibility)
-    ----------------------------------------------------------------------------
-    Interactiepatronen:
-      - HTML5 drag & drop voor "palette -> lane" (MDN Drag & Drop API)  :contentReference[oaicite:3]{index=3}
-      - Basis toegankelijkheid-gedachte volgens WCAG 2.2 (labels, focus, toetsen) :contentReference[oaicite:4]{index=4}
-    ============================================================================
-  -->
+  <title>Inforium Communication Canvas — Prototype (Projects + Templates)</title>
 
   <style>
-    /* =========================================================================
-       1) BRAND TOKENS (pas hier de Inforium kleuren aan)
-       -------------------------------------------------------------------------
-       TIP: Als jullie officiële Inforium-hexes beschikbaar zijn:
-            vervang alleen deze variabelen en klaar.
-       ========================================================================= */
     :root{
-      /* Inforium-ish: fris, licht, zorg-UI */
-      --inf-blue: #1B66FF;       /* Primair */
-      --inf-blue-2: #0B3AAE;     /* Donker */
-      --inf-red: #E6342A;        /* Accent (actie/warning) */
-      --inf-green: #17A773;      /* Success */
+      --bg: #eef3fb;
+      --panel: #ffffff;
+      --panel2: #f6f8fd;
+      --line: #d7e1f0;
+      --text: #1b2a3a;
+      --muted: #6c7c93;
+      --shadow: 0 10px 26px rgba(19, 33, 68, .10);
 
-      --bg: #F6F8FC;
-      --panel: #FFFFFF;
-      --panel-2: #F2F5FB;
-      --text: #0F172A;
-      --muted: #52627A;
-      --line: #D9E1F2;
+      --blue: #2f6ea5;
+      --blueDark: #245a86;
+      --blueSoft: rgba(47,110,165,.10);
 
-      --shadow: 0 10px 28px rgba(16, 24, 40, .10);
-      --radius: 14px;
-      --radius2: 12px;
+      --red: #d64a4a;
+      --green: #2a9d6f;
 
+      --radius: 12px;
       --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
-
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
     body{
       margin:0;
       font-family:var(--font);
-      background: linear-gradient(180deg, #FFFFFF 0%, var(--bg) 65%);
       color:var(--text);
+      background: var(--bg);
       overflow:hidden;
     }
 
-    /* =========================================================================
-       2) LAYOUT SHELL
-       ========================================================================= */
     header.appbar{
-      height:64px;
+      height:56px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       padding:0 14px;
-      border-bottom:1px solid var(--line);
       background: var(--panel);
-      box-shadow: 0 2px 10px rgba(16,24,40,.05);
+      border-bottom:1px solid var(--line);
     }
-
-    .brand{
-      display:flex; align-items:center; gap:12px;
-      font-weight:800;
-    }
+    .brand{ display:flex; align-items:center; gap:10px; font-weight:700; }
     .logoMark{
-      width:34px; height:34px;
-      border-radius:10px;
-      background:
-        radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,.75) 0%, rgba(255,255,255,0) 70%),
-        linear-gradient(135deg, var(--inf-blue), var(--inf-blue-2));
-      box-shadow: 0 10px 18px rgba(27,102,255,.20);
-      border:1px solid rgba(27,102,255,.25);
+      width:28px; height:28px; border-radius:8px;
+      background: linear-gradient(135deg, var(--blue), #4aa0d6);
+      box-shadow: 0 6px 14px rgba(47,110,165,.25);
     }
-    .subtitle{
-      font-weight:600;
-      color:var(--muted);
-      font-size:12.5px;
-      margin-top:2px;
-    }
+    .subtitle{ color:var(--muted); font-weight:500; font-size:12px; margin-top:2px; }
 
-    .toolbar{
-      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    }
+    .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     button, select, .pill{
       font-family:var(--font);
       border:1px solid var(--line);
       background: var(--panel);
       color:var(--text);
-      padding:9px 10px;
-      border-radius:12px;
+      padding:8px 10px;
+      border-radius:10px;
       cursor:pointer;
-      transition:.14s ease;
+      transition:.12s ease;
     }
-    button:hover{ transform: translateY(-1px); box-shadow: 0 8px 16px rgba(16,24,40,.07); }
+    button:hover{ transform: translateY(-1px); box-shadow: 0 10px 20px rgba(19,33,68,.08); }
     button:active{ transform: translateY(0px); box-shadow:none; }
+
     button.primary{
-      border-color: rgba(27,102,255,.35);
-      background: rgba(27,102,255,.10);
-      color: var(--inf-blue-2);
+      border-color: rgba(47,110,165,.25);
+      background: var(--blueSoft);
+      color: var(--blueDark);
       font-weight:700;
     }
+    button.primarySolid{
+      border-color: rgba(47,110,165,.40);
+      background: var(--blue);
+      color: #fff;
+      font-weight:800;
+    }
     button.danger{
-      border-color: rgba(230,52,42,.35);
-      background: rgba(230,52,42,.08);
-      color: #9B1B14;
+      border-color: rgba(214,74,74,.35);
+      background: rgba(214,74,74,.08);
+      color: #9a2f2f;
       font-weight:700;
     }
     .pill{
       cursor:default;
-      background: var(--panel-2);
+      background: var(--panel2);
       color: var(--muted);
       font-weight:600;
     }
 
     main.app{
-      height: calc(100% - 64px);
+      height: calc(100% - 56px);
       display:grid;
-      grid-template-columns: 330px 1fr 360px;
+      /* Resizable columns: Left (projects+library) | Center (lens+canvas) | Right (inspector) */
+      grid-template-columns: var(--leftWidth, 560px) 10px 1fr 10px var(--rightWidth, 360px);
       gap:12px;
       padding:12px;
     }
 
+    .appResizer{
+      border-radius: 10px;
+      background: rgba(27,42,58,.06);
+      border: 1px solid rgba(27,42,58,.10);
+      cursor: col-resize;
+      align-self: stretch;
+      min-height: 180px;
+    }
+    .appResizer:hover{ background: rgba(47,110,165,.10); border-color: rgba(47,110,165,.22); }
     .panel{
       background: var(--panel);
       border:1px solid var(--line);
@@ -152,26 +120,66 @@
       min-width:0;
     }
 
-    .panelHeader{
+    /* LEFT: Projects + Palette */
+    .leftTop{
       padding:12px 12px 10px;
       border-bottom:1px solid var(--line);
-      background: linear-gradient(180deg, #FFFFFF 0%, var(--panel-2) 100%);
+      background: var(--panel);
     }
-    .panelHeader h2{
-      margin:0;
-      font-size:13px;
-      letter-spacing:.2px;
+    .leftTop h2{ margin:0; font-size:13px; }
+    .leftTop .subtitle{ margin-top:6px; }
+
+    .projectBox{
+      background:#f0f5ff;
+      border-top:1px solid rgba(255,255,255,.65);
+      border-bottom:1px solid var(--line);
+      padding:10px;
+      overflow:auto;
+      max-height: 230px;
     }
-    .panelHeader .hint{
-      margin-top:6px;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.35;
+    .projectSearch{
+      display:flex; gap:8px; margin-bottom:10px;
+    }
+    .projectSearch input{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:10px;
+      outline:none;
+    }
+    .projectList{ display:grid; gap:8px; }
+    .projectItem{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      cursor:pointer;
+      transition:.12s ease;
+    }
+    .projectItem:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(19,33,68,.08);
+      border-color: rgba(47,110,165,.25);
+    }
+    .projectItem.active{
+      border-color: rgba(47,110,165,.55);
+      box-shadow: 0 0 0 4px rgba(47,110,165,.10) inset;
+    }
+    .projectTitle{ font-weight:900; font-size:13px; display:flex; justify-content:space-between; gap:10px; }
+    .projectMeta{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35; }
+    .badge{
+      font-size:11px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(47,110,165,.25);
+      background: rgba(47,110,165,.08);
+      color: var(--blueDark);
+      white-space:nowrap;
+      height: fit-content;
     }
 
-    /* =========================================================================
-       3) LEFT: PALETTE
-       ========================================================================= */
     .search{
       display:flex; gap:8px;
       padding:10px;
@@ -181,29 +189,89 @@
     .search input{
       width:100%;
       border:1px solid var(--line);
-      background: #FFFFFF;
+      background: #fff;
       color:var(--text);
       padding:10px 10px;
-      border-radius:12px;
+      border-radius:10px;
       outline:none;
     }
+
     .palette{
       padding:10px;
       overflow:auto;
+      background: #f0f5ff;
     }
-    .group{ margin:10px 0 14px; }
-    .groupTitle{
-      display:flex; align-items:center; justify-content:space-between;
-      font-size:11px; color:var(--muted);
-      padding:6px 2px;
-      text-transform:uppercase;
-      letter-spacing:.12em;
+
+    /* 3 columns: Content / Channels / Actions */
+    .paletteCols{
+      display:grid;
+      grid-template-columns: var(--palW1, 1fr) 8px var(--palW2, 1fr) 8px var(--palW3, 1fr);
+      gap:10px;
+      align-items:start;
+      min-width: 0;
     }
-    .items{ display:grid; grid-template-columns: 1fr; gap:8px; }
-    .item{
-      background: #FFFFFF;
-      border:1px solid var(--line);
+    .palResizer{
+      border-radius: 10px;
+      background: rgba(27,42,58,.06);
+      border: 1px solid rgba(27,42,58,.10);
+      cursor: col-resize;
+      align-self: stretch;
+      min-height: 240px;
+    }
+    .palResizer:hover{ background: rgba(47,110,165,.10); border-color: rgba(47,110,165,.22); }
+
+    .paletteColWrap{
       border-radius: 14px;
+      border: 1px solid var(--line);
+      padding:10px;
+    }
+    .paletteColWrap.content{ background: rgba(47,110,165,.10); border-color: rgba(47,110,165,.22); }
+    .paletteColWrap.channels{ background: rgba(42,157,111,.10); border-color: rgba(42,157,111,.22); }
+    .paletteColWrap.actions{ background: rgba(214,74,74,.10); border-color: rgba(214,74,74,.18); }
+
+    .paletteColTitle{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:11px;
+      color: var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.10em;
+      padding:2px 2px 10px;
+    }
+    .paletteDot{
+      width:10px; height:10px; border-radius:999px;
+      border:1px solid rgba(27,42,58,.18);
+      background: rgba(108,124,147,.18);
+    }
+    .paletteColWrap.content .paletteDot{ background: rgba(47,110,165,.28); border-color: rgba(47,110,165,.28); }
+    .paletteColWrap.channels .paletteDot{ background: rgba(42,157,111,.28); border-color: rgba(42,157,111,.28); }
+    .paletteColWrap.actions .paletteDot{ background: rgba(214,74,74,.26); border-color: rgba(214,74,74,.26); }
+
+    .paletteCol{ display:grid; grid-template-columns:1fr; gap:10px; }
+
+    /* Slight tint for library cards per column */
+    .paletteColWrap.content .item{ background: rgba(255,255,255,.65); border-color: rgba(47,110,165,.22); }
+    .paletteColWrap.channels .item{ background: rgba(255,255,255,.65); border-color: rgba(42,157,111,.22); }
+    .paletteColWrap.actions .item{ background: rgba(255,255,255,.65); border-color: rgba(214,74,74,.20); }
+
+    .paletteColTitle{
+      font-size:11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing:.10em;
+      padding:6px 2px;
+    }
+    .paletteCol{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+
+    .item{
+      background: var(--panel);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
       padding:10px;
       cursor:grab;
       user-select:none;
@@ -220,7 +288,7 @@
       padding:3px 8px;
       border-radius:999px;
       border:1px solid var(--line);
-      background: var(--panel-2);
+      background: var(--panel2);
       color: var(--muted);
       white-space:nowrap;
     }
@@ -231,17 +299,12 @@
       line-height:1.35;
     }
 
-    /* =========================================================================
-       4) CENTER: CANVAS
-       ========================================================================= */
+    /* CENTER */
     .canvasTop{
-      display:flex; gap:10px; align-items:center;
       padding:10px;
       border-bottom:1px solid var(--line);
       background: var(--panel);
-    }
-    .canvasTop .row{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       color: var(--muted);
       font-size:12px;
     }
@@ -249,17 +312,12 @@
       flex:1;
       overflow:auto;
       padding:12px;
-      background:
-        linear-gradient(transparent 23px, rgba(82,98,122,.10) 24px),
-        linear-gradient(90deg, transparent 23px, rgba(82,98,122,.10) 24px);
-      background-size: 24px 24px, 24px 24px;
-      background-color: var(--bg);
+      background: var(--bg);
     }
-
     .phase{
       border:1px solid var(--line);
-      border-radius: 16px;
-      background: #FFFFFF;
+      border-radius: 14px;
+      background: rgba(255,255,255,.65);
       padding:10px;
       margin-bottom:12px;
     }
@@ -267,24 +325,20 @@
       display:flex; align-items:center; justify-content:space-between;
       margin-bottom:8px;
     }
-    .phaseTitle h3{
-      margin:0; font-size:13px;
-    }
-    .phaseTitle .meta{
-      color:var(--muted); font-size:12px;
-    }
+    .phaseTitle h3{ margin:0; font-size:13px; }
+    .phaseTitle .meta{ color:var(--muted); font-size:12px; }
 
     .lanes{
       display:grid;
-      grid-template-columns: 185px 1fr;
+      grid-template-columns: 200px 1fr;
       gap:10px;
       align-items:stretch;
       margin-bottom:10px;
     }
     .laneLabel{
-      background: var(--panel-2);
+      background: #f3f6ff;
       border:1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
       padding:10px;
       font-size:12px;
       color:var(--muted);
@@ -292,54 +346,80 @@
       min-height: 120px;
     }
     .laneLabel b{ color: var(--text); }
+
     .laneDrop{
       position:relative;
-      background: #FFFFFF;
-      border:2px dashed rgba(27,102,255,.22);
-      border-radius: 14px;
-      min-height:120px;
-      overflow:hidden;
+      background: #fff;
+      border:1px dashed rgba(47,110,165,.35);
+      border-radius: 12px;
+      min-height:140px;
+      overflow:auto; /* keep nodes fully visible; scroll if needed */
     }
     .laneDrop.dragover{
-      border-color: rgba(27,102,255,.60);
-      box-shadow: 0 0 0 4px rgba(27,102,255,.12) inset;
+      border-color: rgba(47,110,165,.75);
+      box-shadow: 0 0 0 4px rgba(47,110,165,.10) inset;
     }
     .laneHint{
       position:absolute;
       top:10px; left:10px;
-      font-size:12px; color:rgba(82,98,122,.85);
+      font-size:12px; color:rgba(108,124,147,.9);
       pointer-events:none;
     }
 
-    /* Nodes */
     .node{
       position:absolute;
-      min-width: 200px;
-      max-width: 340px;
-      background: #FFFFFF;
+      /* Responsive width so cards always fit inside swimlanes */
+      width: min(340px, calc(100% - 16px));
+      max-width: calc(100% - 16px);
+      min-width: 220px;
+      background: #fff;
       border:1px solid var(--line);
-      border-radius: 14px;
-      padding:10px;
-      box-shadow: 0 12px 22px rgba(16,24,40,.10);
+      border-radius: 12px;
+      padding:10px 10px 8px;
+      box-shadow: 0 10px 18px rgba(19,33,68,.08);
       cursor:move;
     }
     .node.selected{
-      outline: 2px solid rgba(27,102,255,.55);
-      box-shadow: 0 0 0 6px rgba(27,102,255,.12), 0 12px 22px rgba(16,24,40,.10);
+      outline: 2px solid rgba(47,110,165,.55);
+      box-shadow: 0 0 0 6px rgba(47,110,165,.10), 0 10px 18px rgba(19,33,68,.08);
     }
+    
+    /* Node coloring by category (Content / Kanalen / Acties) */
+    .node.cat-content{ background: rgba(47,110,165,.10); border-color: rgba(47,110,165,.28); }
+    .node.cat-channel{ background: rgba(42,157,111,.10); border-color: rgba(42,157,111,.28); }
+    .node.cat-action{  background: rgba(214,74,74,.10); border-color: rgba(214,74,74,.24); }
+
+    /* Delete button on node */
+    .nodeDel{
+      /* inline delete button (no overlap with label) */
+      position:static;
+      width:22px; height:22px;
+      border-radius:6px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.75);
+      cursor:pointer;
+      font-weight:900;
+      line-height:1;
+      display:flex; align-items:center; justify-content:center;
+      color:#314055;
+      padding:0;
+    }
+    .nodeDel:hover{ background:#fff; }
+    .hdrRight{ display:flex; gap:6px; align-items:center; }
+    .hdr .title{ flex:1; min-width:0; }
+
     .node .hdr{
       display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
       font-size:13px;
       font-weight:900;
-      color: var(--text);
     }
     .node .kind{
       font-size:11px;
       padding:3px 8px;
       border-radius:999px;
-      border:1px solid rgba(27,102,255,.25);
-      background: rgba(27,102,255,.08);
-      color: var(--inf-blue-2);
+      border:1px solid rgba(47,110,165,.25);
+      background: rgba(47,110,165,.08);
+      color: var(--blueDark);
       white-space:nowrap;
     }
     .node .body{
@@ -348,7 +428,8 @@
       font-size:12px;
       line-height:1.35;
     }
-    .node .chips{
+
+    .chips{
       margin-top:8px;
       display:flex; gap:6px; flex-wrap:wrap;
     }
@@ -357,25 +438,23 @@
       padding:3px 7px;
       border-radius:999px;
       border:1px solid var(--line);
-      background: var(--panel-2);
+      background: var(--panel2);
       color: var(--muted);
     }
 
-    .footerHelp{
-      padding:10px 12px;
-      border-top:1px solid var(--line);
+    /* RIGHT */
+    .panelHeader{
+      padding:12px 12px 10px;
+      border-bottom:1px solid var(--line);
       background: var(--panel);
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.35;
     }
+    .panelHeader h2{ margin:0; font-size:13px; }
+    .panelHeader .hint{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35; }
 
-    /* =========================================================================
-       5) RIGHT: INSPECTOR
-       ========================================================================= */
     .inspector{
       padding:10px;
       overflow:auto;
+      background: #f0f5ff;
     }
     .field{ margin:10px 0; }
     .field label{
@@ -388,20 +467,29 @@
     .field input, .field textarea{
       width:100%;
       border:1px solid var(--line);
-      background: #FFFFFF;
+      background: #fff;
       color:var(--text);
       padding:10px;
-      border-radius:12px;
+      border-radius:10px;
       outline:none;
     }
     .field textarea{ min-height:92px; resize:vertical; }
     .row2{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
     .small{ font-size:12px; color:var(--muted); line-height:1.45; }
 
+    .footerHelp{
+      padding:10px 12px;
+      border-top:1px solid var(--line);
+      background: var(--panel);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
     /* Modal */
     .modalBack{
       position:fixed; inset:0;
-      background: rgba(15,23,42,.35);
+      background: rgba(27,42,58,.25);
       display:none;
       align-items:center;
       justify-content:center;
@@ -409,21 +497,27 @@
       z-index:50;
     }
     .modal{
-      width:min(880px, 100%);
-      background: #FFFFFF;
+      width:min(940px, 100%);
+      background: #fff;
       border:1px solid var(--line);
-      border-radius: 16px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
       overflow:hidden;
     }
     .modal header{
       padding:12px 14px;
-      background: linear-gradient(180deg, #FFFFFF 0%, var(--panel-2) 100%);
       border-bottom:1px solid var(--line);
+      background: var(--panel);
       display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
     .modal header h3{ margin:0; font-size:14px; }
-    .modalHint{ padding:0 14px 10px; color:var(--muted); font-size:12px; }
+    .modalHint{
+      padding:0 14px 10px;
+      color:var(--muted);
+      font-size:12px;
+      border-bottom:1px solid var(--line);
+      background: var(--panel);
+    }
     .modalBody{
       padding:12px 14px;
       max-height: 70vh;
@@ -433,107 +527,175 @@
     pre{
       white-space:pre-wrap;
       word-break:break-word;
-      background: #FFFFFF;
+      background: #fff;
       border:1px solid var(--line);
       border-radius: 12px;
       padding:12px;
       margin:0;
-      color: #0F172A;
+      color: #1b2a3a;
       font-size:12px;
       line-height:1.45;
     }
 
-    /* Responsive */
-    @media (max-width: 1180px){
-      main.app{ grid-template-columns: 320px 1fr; }
+    /* Print */
+    @media print{
+      header.appbar, main.app{ display:none !important; }
+      #printSheet{ display:block !important; }
+    }
+    #printSheet{ display:none; padding:18px; }
+    #printSheet h1{ margin:0 0 10px; font-size:18px; }
+    #printSheet .meta{ color:#445; font-size:12px; margin-bottom:14px; }
+    #printSheet .box{
+      border:1px solid #ccd;
+      border-radius:12px;
+      padding:12px;
+      background:#fff;
+      white-space:pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    @media (max-width: 1280px){
+      main.app{ grid-template-columns: 380px 1fr; }
       .panel.right{ display:none; }
+    }
+    @media (max-width: 980px){
+      main.app{ grid-template-columns: 1fr; }
+      .panel.right{ display:none; }
+      body{ overflow:auto; }
     }
   </style>
 </head>
 
 <body>
-  <!-- =========================================================================
-       APP BAR
-       ========================================================================= -->
   <header class="appbar">
-    <div class="brand" aria-label="Inforium Communication Canvas">
+    <div class="brand">
       <span class="logoMark" aria-hidden="true"></span>
       <div>
         <div>Inforium Communication Canvas</div>
-        <div class="subtitle">Klikbaar prototype — drag & drop zorgpad + doelgroep-varianten</div>
+        <div class="subtitle">Prototype — Projects + Templates + doelgroep flows</div>
       </div>
     </div>
 
     <div class="toolbar">
       <span class="pill" id="statusPill">Niet opgeslagen</span>
+      <span class="pill" id="countPill">0 nodes</span>
+
+      <!-- Templates -->
+      <select id="templateSelect" title="Kies sjabloon"></select>
+      <button class="primary" id="btnLoadTemplate">Laad sjabloon</button>
+      <button class="primary" id="btnSaveTemplate">Opslaan als sjabloon</button>
+      <button id="btnManageTemplates">Export/Import sjablonen</button>
+
       <button class="primary" id="btnSave">Opslaan</button>
       <button id="btnLoad">Laden</button>
-      <button id="btnExport">Export JSON</button>
+
+      <button class="primary" id="btnExportTxt">Export TXT</button>
+      <button class="primary" id="btnExportWord">Export Word</button>
+      <button class="primarySolid" id="btnExportPdf">Export PDF</button>
+
+      <button id="btnExportJson">Export JSON</button>
       <button id="btnReport">Rapport preview</button>
       <button class="danger" id="btnReset">Reset</button>
     </div>
   </header>
 
-  <!-- =========================================================================
-       MAIN LAYOUT: LEFT (palette) | CENTER (canvas) | RIGHT (inspector)
-       ========================================================================= -->
   <main class="app">
-    <!-- LEFT: Palette -->
-    <section class="panel left" aria-label="Blokkenbibliotheek">
-      <div class="search">
-        <input id="search" type="search" placeholder="Zoek blokken… (bv. BeterDichtbij, Inforium, QR, folder)" aria-label="Zoeken in blokkenbibliotheek">
+    <!-- LEFT -->
+    <section class="panel left" aria-label="Project selector en blokkenbibliotheek">
+      <div class="leftTop">
+        <h2>Project / Zorgpad (selector)</h2>
+        <div class="subtitle">Klik op een project om een sjabloon te laden</div>
       </div>
-      <div class="palette" id="palette"></div>
+
+      <div class="projectBox">
+        <div class="projectSearch">
+          <input id="projectSearch" type="search" placeholder="Zoek project… (bv. MDL, KNO, operatie)" />
+        </div>
+        <div class="projectList" id="projectList"></div>
+        <div class="subtitle" style="margin-top:10px;">
+          Tip: deze selector is expres simpel, zodat dev/low-code dit kan mappen naar een “Projects” tabel.
+        </div>
+      </div>
+
+      <div class="search">
+        <input id="search" type="search" placeholder="Zoek blokken… (bv. Thuisarts, Indiveo, portaal, QR)" aria-label="Zoeken in blokkenbibliotheek">
+      </div>
+
+      <div class="palette" id="palette">
+        <div class="paletteCols" id="paletteCols">
+          <div class="paletteColWrap content">
+            <div class="paletteColTitle"><span class="paletteDot"></span>Content</div>
+            <div id="paletteContent" class="paletteCol"></div>
+          </div>
+
+          <div class="palResizer" id="palResizer1" title="Sleep om kolombreedte aan te passen"></div>
+
+          <div class="paletteColWrap channels">
+            <div class="paletteColTitle"><span class="paletteDot"></span>Kanalen</div>
+            <div id="paletteChannels" class="paletteCol"></div>
+          </div>
+
+          <div class="palResizer" id="palResizer2" title="Sleep om kolombreedte aan te passen"></div>
+
+          <div class="paletteColWrap actions">
+            <div class="paletteColTitle"><span class="paletteDot"></span>Acties</div>
+            <div id="paletteActions" class="paletteCol"></div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+
       <div class="footerHelp">
-        <b>Gebruik:</b> sleep een blok naar een lane. <br/>
-        <b>Node:</b> versleep • dubbelklik om te bewerken • Delete om te verwijderen.
+        <b>Wat doet de Project selector?</b><br/>
+        • Laadt meteen een “startcanvas” voor een gekozen use case (bijv. MDL scopie, KNO poli, operatie).<br/>
+        • Later koppel je dit aan echte projecten, afdelingen, patiëntgroepen en distributiekanalen.
       </div>
     </section>
 
-    <!-- CENTER: Canvas -->
+    <div class="appResizer" id="resizerLeft" title="Sleep om de linker kolom te verbreden/versmallen"></div>
+
+    <!-- CENTER -->
     <section class="panel center" aria-label="Canvas">
       <div class="canvasTop">
-        <div class="row">
-          <span><b>Lens (doelgroep):</b></span>
-          <select id="lens" aria-label="Selecteer doelgroep lens">
-            <option value="all">Alles</option>
-            <option value="normaal">Normaal</option>
-            <option value="anderstalig">Anderstalig</option>
-            <option value="laaggeletterd">Laaggeletterd</option>
-            <option value="beperkte_gv">Beperkte gezondheidsvaardigheden</option>
-            <option value="blind_slechtziend">Blind / slechtziend</option>
-            <option value="slechthorend">Slechthorend</option>
-            <option value="digitaal_savvy">Digitaal savvy</option>
-            <option value="hoogopgeleid">Hoogopgeleid</option>
-          </select>
+        <b>Lens:</b>
+        <select id="lens" aria-label="Selecteer doelgroep lens">
+          <option value="all">Alles</option>
+          <option value="normaal">Normaal</option>
+          <option value="laaggeletterd">Laaggeletterd</option>
+          <option value="anderstalig">Anderstalig</option>
+          <option value="digitaal_savvy">Digitaal savvy</option>
+        </select>
 
-          <span class="pill" id="countPill">0 nodes</span>
-          <span class="pill">Lane = fase × doelgroep</span>
-        </div>
+        <span class="pill">Lane = fase × doelgroep</span>
       </div>
 
       <div class="canvas" id="canvas" aria-label="Canvas editor"></div>
 
       <div class="footerHelp">
-        <b>Output:</b> Export JSON + Rapport preview = startpunt voor implementatie/koppelingen.
+        <b>Output:</b> Rapport (TXT/Word/PDF) + JSON export voor dev/low-code.
       </div>
     </section>
 
-    <!-- RIGHT: Inspector -->
+    <div class="appResizer" id="resizerRight" title="Sleep om de rechter kolom te verbreden/versmallen"></div>
+
+    <!-- RIGHT -->
     <section class="panel right" aria-label="Inspector">
       <div class="panelHeader">
         <h2>Inspector</h2>
-        <div class="hint">Selecteer een node om eigenschappen te wijzigen (taalniveau, talen, timing, toegankelijkheid).</div>
+        <div class="hint">Selecteer een node om metadata aan te passen (taal, timing, toegankelijkheid).</div>
       </div>
 
       <div class="inspector" id="inspector">
         <div class="small" id="noSelection">
           Geen node geselecteerd.<br/><br/>
-          <b>Low-code mapping (hint):</b><br/>
-          1) Nodes = tabel/collection<br/>
-          2) phaseId + audienceId = lane/filter<br/>
-          3) Inspector = edit form op geselecteerde record<br/>
-          4) Export = JSON view / API endpoint
+          <b>Low-code mapping</b><br/>
+          • Nodes = tabel/collection<br/>
+          • Filter op phaseId + audienceId<br/>
+          • Inspector = edit-form van record<br/>
+          • Export = JSON of rapport
         </div>
 
         <div id="inspectorForm" style="display:none;">
@@ -550,22 +712,22 @@
           <div class="field row2">
             <div>
               <label>Taalniveau</label>
-              <input id="fLevel" placeholder="bv. A2 / B1 / B2" />
+              <input id="fLevel" placeholder="A2 / B1 / B2" />
             </div>
             <div>
               <label>Talen</label>
-              <input id="fLang" placeholder="bv. NL, EN, TR" />
+              <input id="fLang" placeholder="NL, EN, TR…" />
             </div>
           </div>
 
           <div class="field row2">
             <div>
               <label>Timing</label>
-              <input id="fTiming" placeholder="bv. T-7, T-2, T0" />
+              <input id="fTiming" placeholder="T-7 / T-2 / T0 / T+1" />
             </div>
             <div>
               <label>Owner</label>
-              <input id="fOwner" placeholder="bv. poli-assistentie" />
+              <input id="fOwner" placeholder="poli-assistentie / arts / portaal" />
             </div>
           </div>
 
@@ -576,12 +738,12 @@
 
           <div class="field row2">
             <div>
-              <label>Toegankelijkheid: alt-tekst</label>
-              <input id="fAlt" placeholder="Voor visueel" />
+              <label>Alt-tekst (blind/slechtziend)</label>
+              <input id="fAlt" placeholder="Alt-tekst / audio variant" />
             </div>
             <div>
-              <label>Toegankelijkheid: transcript</label>
-              <input id="fTranscript" placeholder="link/ja/nee" />
+              <label>Transcript (slechthorend)</label>
+              <input id="fTranscript" placeholder="ja / link / nee" />
             </div>
           </div>
 
@@ -589,39 +751,45 @@
             <button class="primary" id="btnApply">Toepassen</button>
             <button class="danger" id="btnDelete">Verwijderen</button>
           </div>
-
-          <div class="small">
-            <b>Keyboard:</b> Enter = selecteer • Delete = verwijder • Esc = sluit modal
-          </div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- MODAL -->
+  <!-- Modal -->
   <div class="modalBack" id="modalBack" role="dialog" aria-modal="true">
     <div class="modal">
       <header>
         <h3 id="modalTitle">Output</h3>
         <button id="btnCloseModal">Sluiten</button>
       </header>
-      <div class="modalHint" id="modalHint">Preview / export</div>
-      <div class="modalBody">
-        <pre id="modalPre"></pre>
-      </div>
+      <div class="modalHint" id="modalHint">Preview</div>
+      <div class="modalBody"><pre id="modalPre"></pre></div>
     </div>
   </div>
 
-<script>
-/* ============================================================================
-   6) CONFIG — dit is wat je 1-op-1 kunt overzetten naar een echte app
-   ----------------------------------------------------------------------------
-   In low-code:
-     - PHASES = tabel/collection "Phases"
-     - AUDIENCES = tabel/collection "Audiences"
-     - PALETTE_GROUPS = bibliotheek / templates
-   ========================================================================== */
+  <!-- Print sheet -->
+  <div id="printSheet">
+    <h1>Inforium Communication Canvas — Rapport</h1>
+    <div class="meta" id="printMeta"></div>
+    <div class="box" id="printBox"></div>
+  </div>
 
+  <!-- hidden file input for template import -->
+  <input type="file" id="templateImportFile" accept=".json,application/json" style="display:none;" />
+
+<script>
+/* =============================================================================
+   Bronnen (MDN):
+   - localStorage + Web Storage API: :contentReference[oaicite:4]{index=4}
+   - Drag & Drop + DataTransfer.setData: :contentReference[oaicite:5]{index=5}
+   - Blob downloads + createObjectURL/revokeObjectURL: :contentReference[oaicite:6]{index=6}
+   - Print/PDF via window.print + @media print: :contentReference[oaicite:7]{index=7}
+   ============================================================================= */
+
+/* =============================================================================
+   CONFIG
+   ============================================================================= */
 const PHASES = [
   { id: "vooraf",   title: "Vooraf (T-14 → T-1)" },
   { id: "dagzelf",  title: "Dag van afspraak (T0)" },
@@ -630,86 +798,161 @@ const PHASES = [
 ];
 
 const AUDIENCES = [
-  { id: "normaal",          label: "Normaal", hint: "Standaard info, normale taal." },
-  { id: "anderstalig",      label: "Anderstalig", hint: "Meertalig + visuele ondersteuning." },
-  { id: "laaggeletterd",    label: "Laaggeletterd", hint: "A2/B1 + pictogrammen + korte zinnen." },
-  { id: "beperkte_gv",      label: "Beperkte gezondheidsvaardigheden", hint: "Check begrip + herhaling + eenvoudig." },
-  { id: "blind_slechtziend",label: "Blind/slechtziend", hint: "Alt-tekst, TTS, contrast, structuur." },
-  { id: "slechthorend",     label: "Slechthorend", hint: "Ondertiteling, transcript, visuele cues." },
-  { id: "digitaal_savvy",   label: "Digitaal savvy", hint: "Self-service, deeplinks, reminders." },
-  { id: "hoogopgeleid",     label: "Hoogopgeleid", hint: "Meer detail, verdieping." },
-];
-
-const PALETTE_GROUPS = [
-  {
-    title: "Inforium assets",
-    items: [
-      mkItem("inforium_item", "Inforium item", "Betrouwbare patiëntinfo (contextueel).", "Inforium"),
-      mkItem("inforium_set", "Inforium bundel", "Set van meerdere Inforiums (zorgpadfase).", "Inforium"),
-      mkItem("studio_video", "Inforium Studio video", "Hybride AI-video met ondertiteling/varianten.", "Studio"),
-      mkItem("fragment", "Videofragment", "Herbruikbaar fragment (bv. route, voorbereiding).", "Studio"),
-    ]
-  },
-  {
-    title: "Kanalen",
-    items: [
-      mkItem("mondeling", "Mondeling / fysiek", "Balie, arts, verpleegkundige, telefoon.", "Kanaal"),
-      mkItem("papier", "Folder / papier", "Print + QR, meegeven of opsturen.", "Kanaal"),
-      mkItem("website", "Website", "Pagina met basisinfo + links.", "Kanaal"),
-      mkItem("portaal", "Portaal / PGO", "EPD-portaal of PGO berichten.", "Kanaal"),
-      mkItem("beterdichtbij", "BeterDichtbij", "Bericht + deeplink + reminder.", "App"),
-      mkItem("luscii", "Luscii", "Monitoring / taken / voorlichting.", "App"),
-      mkItem("journey", "Patient Journey app", "Zorgpad-app met stappen en notificaties.", "App"),
-      mkItem("indiveo", "Indiveo (content)", "Externe content/video provider.", "Content"),
-      mkItem("medify", "Medify (complex)", "Zorgproces/patiëntinteractie (placeholder).", "Complex"),
-      mkItem("consultassist", "Consultassistent", "Voorbereiding consult + samenvatting.", "Complex"),
-      mkItem("vragenlijst", "Vragenlijsten / intake", "Formulieren, PROMs, triage.", "Tool"),
-    ]
-  },
-  {
-    title: "Acties",
-    items: [
-      mkItem("send_link", "Stuur link", "E-mail/SMS/app met deeplink.", "Actie"),
-      mkItem("send_qr", "Stuur QR", "QR-code naar mobiel/print.", "Actie"),
-      mkItem("reminder", "Reminder", "T-2 of T-1 reminder met 1 klik actie.", "Actie"),
-      mkItem("check_begrip", "Check begrip", "Teach-back of 1–3 vragen.", "Actie"),
-      mkItem("feedback", "Feedback", "Korte evaluatie na afloop.", "Actie"),
-      mkItem("fallback", "Fallback pad", "Als kanaal faalt: alternatief kanaal.", "Actie"),
-    ]
-  }
+  { id: "normaal",        label: "Normaal", hint: "Standaard info, normale taal." },
+  { id: "laaggeletterd",  label: "Laaggeletterd", hint: "A2/B1 + pictogrammen + kort." },
+  { id: "anderstalig",    label: "Anderstalig", hint: "Meertalig + visueel + simpel." },
+  { id: "digitaal_savvy", label: "Digitaal savvy", hint: "Self-service + reminders + deeplinks." },
 ];
 
 function mkItem(kind, title, desc, tag){ return { kind, title, desc, tag }; }
 
-/* ============================================================================
-   7) STATE + DATA MODEL
-   ----------------------------------------------------------------------------
-   Node model (record):
-     {
-       id, kind, tag, title, body,
-       phaseId, audienceId, x, y,
-       level, lang, timing, owner,
-       alt, transcript
-     }
-   ========================================================================== */
-let state = {
-  nodes: [],
-  selectedNodeId: null,
-  dirty: false,
-};
+/* Content / Channels / Actions are driven by tag mapping */
+const PALETTE_ITEMS = [
+  /* CONTENT: Inforium + externe content */
+  mkItem("inforium_item", "Inforium item", "Betrouwbare patiëntinfo (contextueel).", "Content"),
+  mkItem("inforium_set", "Inforium bundel", "Set van meerdere Inforiums (zorgpadfase).", "Content"),
+  mkItem("studio_video", "Inforium Studio video", "Hybride AI-video met varianten.", "Content"),
+  mkItem("fragment", "Videofragment", "Herbruikbaar fragment (route, voorbereiding).", "Content"),
 
-const STORAGE_KEY = "inforium_canvas_v2_devfriendly";
+  mkItem("indiveo", "Indiveo content", "Externe video/animatie content (placeholder).", "Content"),
+  mkItem("thuisarts", "Thuisarts.nl pagina", "Betrouwbare NL patiënteninformatie (link).", "Content"),
+  mkItem("folder", "Ziekenhuis folder (PDF)", "Eigen folder of patiëntbrief als PDF.", "Content"),
+  mkItem("webpage", "Ziekenhuis webpagina", "Afdelingspagina met uitleg + route.", "Content"),
 
-/* ============================================================================
-   8) DOM refs
-   ========================================================================== */
+  /* CHANNELS */
+  mkItem("mondeling", "Mondeling / fysiek", "Balie, arts, verpleegkundige, telefoon.", "Kanaal"),
+  mkItem("papier", "Folder / papier", "Print + QR, meegeven of opsturen.", "Kanaal"),
+  mkItem("website", "Website", "Pagina met basisinfo + links.", "Kanaal"),
+  mkItem("portaal", "Portaal / PGO", "EPD-portaal of PGO berichten.", "Kanaal"),
+  mkItem("beterdichtbij", "BeterDichtbij", "Bericht + deeplink + reminder.", "Kanaal"),
+  mkItem("luscii", "Luscii", "Monitoring / taken / voorlichting.", "Kanaal"),
+  mkItem("journey", "Patient Journey app", "Zorgpad-app met stappen/notificaties.", "Kanaal"),
+  mkItem("medify", "Medify / complex", "Complexe app (placeholder, integratie).", "Kanaal"),
+  mkItem("vragenlijst", "Vragenlijst / intake", "Formulier, triage, voorbereiding.", "Kanaal"),
+
+  /* ACTIONS */
+  mkItem("send_link", "Stuur link", "E-mail/SMS/app met deeplink.", "Actie"),
+  mkItem("send_qr", "Stuur QR", "QR-code naar mobiel/print.", "Actie"),
+  mkItem("reminder", "Reminder", "T-2 of T-1 reminder met 1 klik actie.", "Actie"),
+  mkItem("check_begrip", "Check begrip", "Teach-back / 1–3 vragen.", "Actie"),
+  mkItem("feedback", "Feedback", "Korte evaluatie na afloop.", "Actie"),
+  mkItem("fallback", "Fallback pad", "Als kanaal faalt: alternatief kanaal.", "Actie"),
+];
+
+/* =============================================================================
+   TEMPLATES (built-in) + user storage
+   ============================================================================= */
+const STORAGE_KEY = "inforium_canvas_ui_v5";
+const TEMPLATES_USER_KEY = "inforium_canvas_templates_user_v1";
+
+/* Built-in templates (8) */
+const TEMPLATES_BUILTIN = [
+  templatePoliNormaal(),
+  templatePoliLaaggeletterd(),
+  templatePoliAnderstalig(),
+  templatePoliDigitaal(),
+  templateVerrichtingNormaal(),
+  templateVerrichtingLaaggeletterd(),
+  templateVerrichtingAnderstalig(),
+  templateVerrichtingDigitaal(),
+];
+
+/* Projects (Option B): simple selector -> loads a template */
+const PROJECTS = [
+  {
+    id: "poli_kno_normaal",
+    title: "KNO Polikliniekbezoek",
+    badge: "Poli",
+    desc: "Startflow voor afspraak → route → consult → nazorg (normaal).",
+    templateScopeId: "built-in:poli_normaal",
+    lens: "all"
+  },
+  {
+    id: "poli_mdl_lg",
+    title: "MDL Polibezoek (laaggeletterd)",
+    badge: "Poli",
+    desc: "A2/B1, video+QR, begrip-checks, fallback bellen.",
+    templateScopeId: "built-in:poli_lg",
+    lens: "laaggeletterd"
+  },
+  {
+    id: "poli_anders",
+    title: "Polibezoek (anderstalig)",
+    badge: "Poli",
+    desc: "Meertalig + visueel, reminders in taal, kanaalalternatieven.",
+    templateScopeId: "built-in:poli_anders",
+    lens: "anderstalig"
+  },
+  {
+    id: "poli_digitaal",
+    title: "Polibezoek (digitaal savvy)",
+    badge: "Poli",
+    desc: "Self-service: portaal/app, intake digitaal, reminders, check-in.",
+    templateScopeId: "built-in:poli_digitaal",
+    lens: "digitaal_savvy"
+  },
+  {
+    id: "op_normaal",
+    title: "Verrichting/Operatie (normaal)",
+    badge: "Operatie",
+    desc: "Voorbereiding (nuchter/medicatie), dag zelf, nazorg + alarmsignalen.",
+    templateScopeId: "built-in:verr_normaal",
+    lens: "all"
+  },
+  {
+    id: "op_lg",
+    title: "Verrichting/Operatie (laaggeletterd)",
+    badge: "Operatie",
+    desc: "Heel kort + 1-pager + video, extra begrip-checks, duidelijke fallback.",
+    templateScopeId: "built-in:verr_lg",
+    lens: "laaggeletterd"
+  },
+  {
+    id: "op_anders",
+    title: "Verrichting/Operatie (anderstalig)",
+    badge: "Operatie",
+    desc: "Meertalig, ondertitels, reminders nuchter, evt. tolk ondersteuning.",
+    templateScopeId: "built-in:verr_anders",
+    lens: "anderstalig"
+  },
+  {
+    id: "op_digitaal",
+    title: "Verrichting/Operatie (digitaal savvy)",
+    badge: "Operatie",
+    desc: "Portaal/app als single source, pre-check digitaal, uitslagflow.",
+    templateScopeId: "built-in:verr_digitaal",
+    lens: "digitaal_savvy"
+  },
+];
+
+/* =============================================================================
+   STATE
+   ============================================================================= */
+let state = { nodes: [], selectedNodeId: null, dirty: false };
+let selectedProjectId = null;
+
+/* =============================================================================
+   DOM refs
+   ============================================================================= */
 const els = {
-  palette: document.getElementById("palette"),
   canvas: document.getElementById("canvas"),
   search: document.getElementById("search"),
   lens: document.getElementById("lens"),
   countPill: document.getElementById("countPill"),
   statusPill: document.getElementById("statusPill"),
+
+  paletteContent: document.getElementById("paletteContent"),
+  paletteChannels: document.getElementById("paletteChannels"),
+  paletteActions: document.getElementById("paletteActions"),
+
+  projectSearch: document.getElementById("projectSearch"),
+  projectList: document.getElementById("projectList"),
+
+  templateSelect: document.getElementById("templateSelect"),
+  btnLoadTemplate: document.getElementById("btnLoadTemplate"),
+  btnSaveTemplate: document.getElementById("btnSaveTemplate"),
+  btnManageTemplates: document.getElementById("btnManageTemplates"),
+  templateImportFile: document.getElementById("templateImportFile"),
 
   inspectorForm: document.getElementById("inspectorForm"),
   noSelection: document.getElementById("noSelection"),
@@ -728,69 +971,131 @@ const els = {
 
   btnSave: document.getElementById("btnSave"),
   btnLoad: document.getElementById("btnLoad"),
-  btnExport: document.getElementById("btnExport"),
+  btnExportJson: document.getElementById("btnExportJson"),
   btnReport: document.getElementById("btnReport"),
   btnReset: document.getElementById("btnReset"),
+
+  btnExportTxt: document.getElementById("btnExportTxt"),
+  btnExportWord: document.getElementById("btnExportWord"),
+  btnExportPdf: document.getElementById("btnExportPdf"),
 
   modalBack: document.getElementById("modalBack"),
   modalTitle: document.getElementById("modalTitle"),
   modalHint: document.getElementById("modalHint"),
   modalPre: document.getElementById("modalPre"),
   btnCloseModal: document.getElementById("btnCloseModal"),
+
+  // resizers
+  resizerLeft: document.getElementById("resizerLeft"),
+  resizerRight: document.getElementById("resizerRight"),
+  paletteCols: document.getElementById("paletteCols"),
+  palResizer1: document.getElementById("palResizer1"),
+  palResizer2: document.getElementById("palResizer2"),
+
+  printMeta: document.getElementById("printMeta"),
+  printBox: document.getElementById("printBox"),
 };
 
-/* ============================================================================
-   9) RENDER: Palette
-   ========================================================================== */
-function renderPalette(filterText=""){
-  els.palette.innerHTML = "";
+/* =============================================================================
+   Projects (Option B)
+   ============================================================================= */
+function renderProjects(filterText=""){
   const q = filterText.trim().toLowerCase();
+  els.projectList.innerHTML = "";
 
-  PALETTE_GROUPS.forEach(group => {
-    const groupEl = document.createElement("div");
-    groupEl.className = "group";
+  const list = PROJECTS.filter(p => !q || (p.title + " " + p.desc + " " + p.badge).toLowerCase().includes(q));
 
-    const title = document.createElement("div");
-    title.className = "groupTitle";
-    title.innerHTML = `<span>${escapeHtml(group.title)}</span><span>${group.items.length}</span>`;
-    groupEl.appendChild(title);
+  for (const p of list){
+    const el = document.createElement("div");
+    el.className = "projectItem" + (p.id === selectedProjectId ? " active" : "");
+    el.dataset.projectId = p.id;
 
-    const itemsEl = document.createElement("div");
-    itemsEl.className = "items";
+    el.innerHTML = `
+      <div class="projectTitle">
+        <span>${escapeHtml(p.title)}</span>
+        <span class="badge">${escapeHtml(p.badge)}</span>
+      </div>
+      <div class="projectMeta">${escapeHtml(p.desc)}</div>
+    `;
 
-    group.items
-      .filter(it => !q || (it.title + " " + it.desc + " " + it.kind + " " + it.tag).toLowerCase().includes(q))
-      .forEach(it => {
-        const itemEl = document.createElement("div");
-        itemEl.className = "item";
-        itemEl.setAttribute("draggable", "true");
-        itemEl.dataset.payload = JSON.stringify(it);
+    el.addEventListener("click", () => loadProject(p.id));
+    els.projectList.appendChild(el);
+  }
 
-        itemEl.innerHTML = `
-          <div class="top">
-            <span>${escapeHtml(it.title)}</span>
-            <span class="tag">${escapeHtml(it.tag)}</span>
-          </div>
-          <div class="desc">${escapeHtml(it.desc)}</div>
-        `;
-
-        // HTML5 DnD: palette item -> lane drop target :contentReference[oaicite:5]{index=5}
-        itemEl.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("application/json", itemEl.dataset.payload);
-          e.dataTransfer.effectAllowed = "copy";
-        });
-
-        itemsEl.appendChild(itemEl);
-      });
-
-    groupEl.appendChild(itemsEl);
-    els.palette.appendChild(groupEl);
-  });
+  if(!list.length){
+    const empty = document.createElement("div");
+    empty.className = "projectMeta";
+    empty.textContent = "Geen projecten gevonden.";
+    els.projectList.appendChild(empty);
+  }
 }
 
-/* ============================================================================
-   10) RENDER: Canvas (phases + lanes)
-   ========================================================================== */
+function loadProject(projectId){
+  const p = PROJECTS.find(x => x.id === projectId);
+  if(!p) return;
+
+  selectedProjectId = p.id;
+  renderProjects(els.projectSearch.value);
+
+  // Set lens if specified
+  if (p.lens) els.lens.value = p.lens;
+
+  // Ensure templateSelect reflects selection then load
+  if (p.templateScopeId){
+    els.templateSelect.value = p.templateScopeId;
+    loadTemplateIntoCanvas(p.templateScopeId);
+  }
+
+  applyLens();
+  toast(`Project geladen: ${p.title}`);
+}
+
+/* =============================================================================
+   Palette (3 columns)
+   ============================================================================= */
+function renderPalette(filterText=""){
+  const q = filterText.trim().toLowerCase();
+  els.paletteContent.innerHTML = "";
+  els.paletteChannels.innerHTML = "";
+  els.paletteActions.innerHTML = "";
+
+  const renderItem = (it) => {
+    const itemEl = document.createElement("div");
+    itemEl.className = "item";
+    itemEl.setAttribute("draggable", "true");
+    itemEl.dataset.payload = JSON.stringify(it);
+
+    itemEl.innerHTML = `
+      <div class="top">
+        <span>${escapeHtml(it.title)}</span>
+        <span class="tag">${escapeHtml(it.tag)}</span>
+      </div>
+      <div class="desc">${escapeHtml(it.desc)}</div>
+    `;
+
+    // Drag data store using DataTransfer.setData :contentReference[oaicite:8]{index=8}
+    itemEl.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("application/json", itemEl.dataset.payload);
+      e.dataTransfer.effectAllowed = "copy";
+    });
+
+    return itemEl;
+  };
+
+  for (const it of PALETTE_ITEMS){
+    const hay = (it.title + " " + it.desc + " " + it.kind + " " + it.tag).toLowerCase();
+    if (q && !hay.includes(q)) continue;
+
+    if (it.tag === "Content") els.paletteContent.appendChild(renderItem(it));
+    else if (it.tag === "Kanaal") els.paletteChannels.appendChild(renderItem(it));
+    else if (it.tag === "Actie") els.paletteActions.appendChild(renderItem(it));
+    else els.paletteContent.appendChild(renderItem(it));
+  }
+}
+
+/* =============================================================================
+   Canvas render
+   ============================================================================= */
 function renderCanvas(){
   els.canvas.innerHTML = "";
 
@@ -801,10 +1106,7 @@ function renderCanvas(){
 
     const hdr = document.createElement("div");
     hdr.className = "phaseTitle";
-    hdr.innerHTML = `
-      <h3>${escapeHtml(phase.title)}</h3>
-      <div class="meta">Sleep blokken naar een lane</div>
-    `;
+    hdr.innerHTML = `<h3>${escapeHtml(phase.title)}</h3><div class="meta">Drop blokken in lanes</div>`;
     phaseEl.appendChild(hdr);
 
     AUDIENCES.forEach(aud => {
@@ -828,7 +1130,7 @@ function renderCanvas(){
       drop.appendChild(hint);
 
       drop.addEventListener("dragover", (e) => {
-        e.preventDefault();          // required for drop
+        e.preventDefault();
         drop.classList.add("dragover");
         e.dataTransfer.dropEffect = "copy";
       });
@@ -837,7 +1139,6 @@ function renderCanvas(){
       drop.addEventListener("drop", (e) => {
         e.preventDefault();
         drop.classList.remove("dragover");
-
         const payload = e.dataTransfer.getData("application/json");
         if(!payload) return;
 
@@ -847,18 +1148,14 @@ function renderCanvas(){
         const y = (e.clientY - rect.top) + drop.scrollTop;
 
         addNode({
-          kind: it.kind,
-          tag: it.tag,
-          title: it.title,
-          body: it.desc,
-          phaseId: phase.id,
-          audienceId: aud.id,
-          x: clamp(x-100, 10, rect.width-210),
-          y: clamp(y-24, 32, rect.height-80),
+          kind: it.kind, tag: it.tag, title: it.title, body: it.desc,
+          phaseId: phase.id, audienceId: aud.id,
+          x: clamp(x-120, 10, rect.width-260),
+          y: clamp(y-24, 32, rect.height-90),
           level: suggestLevel(aud.id),
           lang: suggestLang(aud.id),
           timing: suggestTiming(phase.id),
-          transcript: (it.kind === "studio_video" || it.kind === "fragment") ? "ja" : ""
+          transcript: (it.kind === "studio_video" || it.kind === "fragment" || it.kind === "indiveo") ? "ja" : ""
         });
       });
 
@@ -873,12 +1170,21 @@ function renderCanvas(){
   applyLens();
 }
 
-/* ============================================================================
-   11) RENDER: Nodes (absolute positioned cards inside lane)
-   ========================================================================== */
+function categoryClass(node){
+  // Category based on tag/kind for consistent coloring in library + swimlanes
+  const tag = (node.tag || "").toLowerCase();
+  if (tag === "inforium" || tag === "studio" || tag === "content") return "cat-content";
+  if (tag === "kanaal" || tag === "app" || tag === "tool") return "cat-channel";
+  if (tag === "actie") return "cat-action";
+  // fallback heuristic
+  const k = (node.kind || "").toLowerCase();
+  if (k.includes("inforium") || k.includes("video") || k.includes("thuisarts") || k.includes("folder") || k.includes("webpage")) return "cat-content";
+  if (k.includes("portaal") || k.includes("website") || k.includes("luscii") || k.includes("journey") || k.includes("beter")) return "cat-channel";
+  return "cat-action";
+}
+
 function renderNodes(){
   document.querySelectorAll(".laneDrop .node").forEach(n => n.remove());
-
   const lanes = [...document.querySelectorAll(".laneDrop")];
 
   for (const node of state.nodes){
@@ -889,7 +1195,7 @@ function renderNodes(){
     if (hint) hint.style.display = "none";
 
     const el = document.createElement("div");
-    el.className = "node";
+    el.className = "node " + categoryClass(node);
     el.tabIndex = 0;
     el.dataset.nodeId = node.id;
     el.style.left = node.x + "px";
@@ -897,24 +1203,33 @@ function renderNodes(){
 
     el.innerHTML = `
       <div class="hdr">
-        <span>${escapeHtml(node.title)}</span>
-        <span class="kind">${escapeHtml(node.tag || node.kind)}</span>
+        <span class="title">${escapeHtml(node.title)}</span>
+        <div class="hdrRight">
+          <span class="kind">${escapeHtml(node.tag || node.kind)}</span>
+          <button class="nodeDel" type="button" title="Verwijderen">×</button>
+        </div>
       </div>
+      <div class="body"><b>Bron:</b> ${escapeHtml(node.owner || "—")}</div>
       <div class="body">${escapeHtml(node.body || "")}</div>
+
       <div class="chips">
         ${node.level ? `<span class="chip">Niveau: ${escapeHtml(node.level)}</span>` : ``}
         ${node.lang ? `<span class="chip">Taal: ${escapeHtml(node.lang)}</span>` : ``}
         ${node.timing ? `<span class="chip">Timing: ${escapeHtml(node.timing)}</span>` : ``}
-        ${node.transcript ? `<span class="chip">Transcript: ${escapeHtml(node.transcript)}</span>` : ``}
       </div>
     `;
 
     el.addEventListener("click", () => selectNode(node.id));
-    el.addEventListener("keydown", (ev) => {
+
+    const delBtn = el.querySelector(".nodeDel");
+    delBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      deleteNode(node.id);
+    });
+el.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") selectNode(node.id);
       if (ev.key === "Delete") deleteNode(node.id);
     });
-    el.addEventListener("dblclick", () => { selectNode(node.id); setTimeout(()=>els.fTitle.focus(), 0); });
 
     makeMovable(el, lane);
     lane.appendChild(el);
@@ -928,11 +1243,43 @@ function renderNodes(){
 
   updateSelectedStyles();
   updateCounts();
+
+  // After DOM is updated, pack nodes to avoid overlaps
+  requestAnimationFrame(packAllLanes);
 }
 
-/* ============================================================================
-   12) Node moving (simple mouse drag inside lane)
-   ========================================================================== */
+
+/* =============================================================================
+   Overlap prevention in swimlanes
+   - Nodes are absolutely positioned. After drops/moves we "pack" nodes top-down
+     (keeping X) so they don't overlap.
+   ============================================================================= */
+function packLane(laneEl){
+  const nodeEls = Array.from(laneEl.querySelectorAll(".node"));
+  if(!nodeEls.length) return;
+
+  // sort by current y
+  nodeEls.sort((a,b) => (getNode(a.dataset.nodeId)?.y ?? 0) - (getNode(b.dataset.nodeId)?.y ?? 0));
+
+  let cursorY = 32;         // leave room under lane header/hint area
+  const gap = 10;
+
+  for (const el of nodeEls){
+    const n = getNode(el.dataset.nodeId);
+    if(!n) continue;
+
+    // ensure node stays within lane height; allow scrolling if overflow
+    const h = el.offsetHeight || 90;
+    n.y = Math.max(n.y, cursorY);
+    el.style.top = n.y + "px";
+    cursorY = n.y + h + gap;
+  }
+}
+
+function packAllLanes(){
+  document.querySelectorAll(".laneDrop").forEach(packLane);
+}
+
 function makeMovable(nodeEl, laneEl){
   let dragging = false;
   let startX=0, startY=0, origX=0, origY=0;
@@ -940,19 +1287,15 @@ function makeMovable(nodeEl, laneEl){
   nodeEl.addEventListener("mousedown", (e) => {
     dragging = true;
     selectNode(nodeEl.dataset.nodeId);
-    startX = e.clientX;
-    startY = e.clientY;
-
+    startX = e.clientX; startY = e.clientY;
     const n = getNode(nodeEl.dataset.nodeId);
     origX = n.x; origY = n.y;
-
     nodeEl.style.cursor = "grabbing";
     e.preventDefault();
   });
 
   window.addEventListener("mousemove", (e) => {
     if(!dragging) return;
-
     const id = nodeEl.dataset.nodeId;
     const n = getNode(id);
     const rect = laneEl.getBoundingClientRect();
@@ -960,8 +1303,8 @@ function makeMovable(nodeEl, laneEl){
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
 
-    n.x = clamp(origX + dx, 10, rect.width - 210);
-    n.y = clamp(origY + dy, 32, rect.height - 80);
+    n.x = clamp(origX + dx, 10, rect.width - 260);
+    n.y = clamp(origY + dy, 32, rect.height - 90);
 
     nodeEl.style.left = n.x + "px";
     nodeEl.style.top  = n.y + "px";
@@ -972,18 +1315,20 @@ function makeMovable(nodeEl, laneEl){
     if(!dragging) return;
     dragging = false;
     nodeEl.style.cursor = "move";
+    // Pack lane to avoid overlaps after moving
+    packLane(laneEl);
   });
 }
 
-/* ============================================================================
-   13) State operations
-   ========================================================================== */
+/* =============================================================================
+   State ops
+   ============================================================================= */
 function addNode(partial){
   const id = cryptoId();
   const node = {
     id,
     kind: partial.kind || "blok",
-    tag: partial.tag || "Blok",
+    tag: partial.tag || "Content",
     title: partial.title || "Nieuw blok",
     body: partial.body || "",
     phaseId: partial.phaseId,
@@ -993,7 +1338,7 @@ function addNode(partial){
     level: partial.level || "",
     lang: partial.lang || "",
     timing: partial.timing || "",
-    owner: partial.owner || "",
+    owner: partial.owner || "Zorgorganisatie / afdeling",
     alt: partial.alt || "",
     transcript: partial.transcript || "",
   };
@@ -1072,9 +1417,9 @@ function resetAll(){
   setDirty(false);
 }
 
-/* ============================================================================
-   14) Lens (filter lanes by audience)
-   ========================================================================== */
+/* =============================================================================
+   Lens
+   ============================================================================= */
 function applyLens(){
   const lens = els.lens.value;
   document.querySelectorAll(".lanes").forEach(row => {
@@ -1085,16 +1430,15 @@ function applyLens(){
   });
 }
 
-/* ============================================================================
-   15) Save/Load/Export/Report
-   ========================================================================== */
+/* =============================================================================
+   Save/load canvas (localStorage)  :contentReference[oaicite:9]{index=9}
+   ============================================================================= */
 function save(){
-  const payload = { version: 2, savedAt: new Date().toISOString(), nodes: state.nodes };
+  const payload = { version: 5, savedAt: new Date().toISOString(), nodes: state.nodes };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   setDirty(false);
-  toast("Opgeslagen (localStorage).");
+  toast("Canvas opgeslagen.");
 }
-
 function load(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){ toast("Geen opgeslagen canvas gevonden."); return; }
@@ -1107,33 +1451,191 @@ function load(){
   toast("Canvas geladen.");
 }
 
+/* =============================================================================
+   Exports (TXT / Word / PDF / JSON)
+   ============================================================================= */
 function exportJson(){
   const payload = {
-    version: 2,
+    version: 5,
     exportedAt: new Date().toISOString(),
     phases: PHASES,
     audiences: AUDIENCES,
     nodes: state.nodes
   };
-  openModal("Export JSON", "Kopieer dit JSON (later: download of API).", JSON.stringify(payload, null, 2));
+  openModal("Export JSON", "Kopieer dit JSON (input voor dev/low-code).", JSON.stringify(payload, null, 2));
 }
 
-function reportPreview(){
-  openModal("Rapport preview", "Samenvatting voor implementatie (concept).", buildReport());
+function exportTxt(){
+  const text = buildReportText();
+  downloadBlob(text, `inforium-canvas-report-${todayStamp()}.txt`, "text/plain;charset=utf-8");
 }
 
-function buildReport(){
+function exportWord(){
+  const html = buildWordHtml();
+  downloadBlob(html, `inforium-canvas-report-${todayStamp()}.doc`, "application/msword");
+}
+
+function exportPdf(){
+  const text = buildReportText();
+  els.printMeta.textContent = `Datum: ${new Date().toLocaleString()} | Nodes: ${state.nodes.length}`;
+  els.printBox.textContent = text;
+  window.print(); // :contentReference[oaicite:10]{index=10}
+}
+
+/* =============================================================================
+   Templates: load/save/export/import
+   ============================================================================= */
+function getUserTemplates(){
+  const raw = localStorage.getItem(TEMPLATES_USER_KEY);
+  if(!raw) return [];
+  try { return JSON.parse(raw) || []; } catch { return []; }
+}
+function setUserTemplates(templates){
+  localStorage.setItem(TEMPLATES_USER_KEY, JSON.stringify(templates));
+}
+
+function refreshTemplateSelect(){
+  const user = getUserTemplates();
+  const all = [
+    ...TEMPLATES_BUILTIN.map(t => ({...t, scope:"built-in"})),
+    ...user.map(t => ({...t, scope:"user"})),
+  ];
+
+  els.templateSelect.innerHTML = "";
+  for (const t of all){
+    const opt = document.createElement("option");
+    opt.value = `${t.scope}:${t.id}`;
+    opt.textContent = `${t.scope === "built-in" ? "★ " : "✎ "}${t.name}`;
+    opt.title = t.description || "";
+    els.templateSelect.appendChild(opt);
+  }
+}
+
+function resolveTemplate(scopeId){
+  const [scope, id] = scopeId.split(":");
+  if (scope === "built-in") return TEMPLATES_BUILTIN.find(t => t.id === id) || null;
+  const user = getUserTemplates();
+  return user.find(t => t.id === id) || null;
+}
+
+function loadTemplateIntoCanvas(scopeId){
+  const t = resolveTemplate(scopeId);
+  if(!t){ toast("Sjabloon niet gevonden."); return; }
+
+  const nodes = (t.nodes || []).map(n => ({
+    ...n,
+    id: cryptoId(),
+  }));
+
+  // Fix placeholder ids if any
+  for (const n of nodes){
+    if (n.id === "TEMPLATE_NODE_ID") n.id = cryptoId();
+  }
+
+  state.nodes = nodes;
+  state.selectedNodeId = null;
+  renderNodes();
+  updateInspector();
+  setDirty(true);
+  toast(`Sjabloon geladen: ${t.name}`);
+}
+
+function saveCurrentAsTemplate(){
+  const name = prompt("Naam voor dit sjabloon:", "Mijn sjabloon");
+  if(!name) return;
+
+  const user = getUserTemplates();
+  const tpl = {
+    id: cryptoId(),
+    name: name.trim(),
+    description: "Custom sjabloon (lokaal opgeslagen)",
+    createdAt: new Date().toISOString(),
+    nodes: state.nodes.map(n => ({ ...n, id: "TEMPLATE_NODE_ID" })),
+  };
+
+  user.unshift(tpl);
+  setUserTemplates(user);
+  refreshTemplateSelect();
+  toast("Sjabloon opgeslagen (lokaal).");
+}
+
+function exportAllTemplates(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    builtin: TEMPLATES_BUILTIN,
+    user: getUserTemplates(),
+  };
+  downloadBlob(JSON.stringify(payload, null, 2), `inforium-templates-${todayStamp()}.json`, "application/json;charset=utf-8");
+}
+
+function importTemplatesFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const payload = JSON.parse(String(reader.result || "{}"));
+      const importedUser = payload.user || payload.templates || [];
+      if (!Array.isArray(importedUser)) throw new Error("Invalid templates format");
+
+      const current = getUserTemplates();
+      const merged = [...importedUser, ...current]
+        .filter(t => t && t.id && t.name && Array.isArray(t.nodes));
+
+      setUserTemplates(merged);
+      refreshTemplateSelect();
+      toast(`Templates geïmporteerd (${importedUser.length}).`);
+    }catch(e){
+      alert("Import mislukt: geen geldig templates JSON.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function manageTemplatesModal(){
+  const userCount = getUserTemplates().length;
+  const txt =
+`SJABLONEN BEHEER
+================
+Built-in sjablonen: ${TEMPLATES_BUILTIN.length}
+Eigen sjablonen (lokaal): ${userCount}
+
+Acties:
+- Export: download JSON met built-in + eigen sjablonen
+- Import: voeg sjablonen toe vanuit JSON bestand
+- Clear: wis alleen eigen sjablonen
+
+Let op: eigen sjablonen staan lokaal in je browser (localStorage).
+`;
+  openModal("Sjablonen beheren", "Gebruik de prompt voor export/import/clear.", txt);
+
+  setTimeout(() => {
+    const action = prompt("Typ: export | import | clear | cancel", "export");
+    if(!action) return;
+    if(action.toLowerCase() === "export") exportAllTemplates();
+    if(action.toLowerCase() === "import") els.templateImportFile.click();
+    if(action.toLowerCase() === "clear"){
+      if(confirm("Weet je het zeker? Dit wist alleen jouw eigen sjablonen.")){
+        setUserTemplates([]);
+        refreshTemplateSelect();
+        toast("Eigen sjablonen gewist.");
+      }
+    }
+  }, 60);
+}
+
+/* =============================================================================
+   Report builders
+   ============================================================================= */
+function buildReportText(){
   const byPhase = Object.fromEntries(PHASES.map(p => [p.id, []]));
   const byAudience = Object.fromEntries(AUDIENCES.map(a => [a.id, []]));
-
   for (const n of state.nodes){
     if (byPhase[n.phaseId]) byPhase[n.phaseId].push(n);
     if (byAudience[n.audienceId]) byAudience[n.audienceId].push(n);
   }
 
   const lines = [];
-  lines.push("INFORIUM COMMUNICATION CANVAS — RAPPORT (concept)");
-  lines.push("===============================================");
+  lines.push("INFORIUM COMMUNICATION CANVAS — RAPPORT");
+  lines.push("=====================================");
   lines.push(`Datum: ${new Date().toLocaleString()}`);
   lines.push(`Totaal nodes: ${state.nodes.length}`);
   lines.push("");
@@ -1141,6 +1643,9 @@ function buildReport(){
   lines.push("1) Overzicht per fase");
   for (const p of PHASES){
     lines.push(`- ${p.title}: ${byPhase[p.id].length} blok(ken)`);
+    for (const n of byPhase[p.id].slice(0, 14)){
+      lines.push(`  • [${n.audienceId}] ${n.title} (${n.tag}) | ${n.timing || "-"} | ${n.lang || "-"} | ${n.level || "-"}`);
+    }
   }
   lines.push("");
 
@@ -1150,63 +1655,80 @@ function buildReport(){
   }
   lines.push("");
 
-  lines.push("3) Gaps & risico's (heuristiek)");
+  lines.push("3) Gaps (snelle checks)");
   const gaps = [];
   for (const n of state.nodes){
-    if (n.audienceId === "slechthorend" && (n.kind === "studio_video" || n.kind === "fragment") && !n.transcript){
-      gaps.push(`- Slechthorend: "${n.title}" lijkt video/fragment zonder transcript.`);
+    if (n.audienceId === "laaggeletterd" && !/A2|B1/i.test(n.level || "")){
+      gaps.push(`- Laaggeletterd: "${n.title}" mist A2/B1 instelling.`);
     }
-    if (n.audienceId === "blind_slechtziend" && !n.alt){
-      gaps.push(`- Blind/slechtziend: "${n.title}" mist alt-tekst / audiovariant.`);
+    if (n.audienceId === "anderstalig" && !/auto|\(auto\)|\+/i.test(n.lang || "")){
+      gaps.push(`- Anderstalig: "${n.title}" mist taal/auto-vertaling hint.`);
     }
-    if ((n.audienceId === "laaggeletterd" || n.audienceId === "beperkte_gv") && !/A2|B1/i.test(n.level || "")){
-      gaps.push(`- Begrijpelijkheid: "${n.title}" voor ${n.audienceId} mist A2/B1 instelling.`);
+    if (n.audienceId === "digitaal_savvy" && !/(link|deeplink|portaal|app|qr|beter)/i.test((n.body || "") + " " + (n.title || ""))){
+      gaps.push(`- Digitaal savvy: "${n.title}" mist self-service kanaal hint.`);
     }
   }
-  if (!gaps.length) gaps.push("- Geen opvallende gaps (op basis van deze simpele checks).");
-  lines.push(gaps.slice(0,20).join("\n"));
-  lines.push("");
-
-  lines.push("4) To-do implementatie (voorbeeld)");
-  lines.push("- Koppel kanalen (portaal/app) via connectoren of templates.");
-  lines.push("- Maak varianten (A2/B1, meertalig, transcript/alt).");
-  lines.push("- Leg ownership vast per stap (wie verstuurt wat wanneer).");
-  lines.push("- Test 1 zorgpad end-to-end met 2–3 doelgroepen.");
+  if(!gaps.length) gaps.push("- Geen opvallende gaps op basis van deze checks.");
+  lines.push(gaps.slice(0, 24).join("\n"));
   lines.push("");
 
   return lines.join("\n");
 }
 
-/* ============================================================================
-   16) Modal
-   ========================================================================== */
-function openModal(title, hint, text){
-  els.modalTitle.textContent = title;
-  els.modalHint.textContent = hint;
-  els.modalPre.textContent = text;
-  els.modalBack.style.display = "flex";
+function buildWordHtml(){
+  const text = buildReportText()
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return `
+  <!doctype html><html><head><meta charset="utf-8">
+    <title>Inforium Report</title>
+    <style>
+      body{ font-family: Calibri, Arial, sans-serif; color:#1b2a3a; }
+      h1{ font-size:18pt; margin:0 0 8pt; }
+      .meta{ color:#6c7c93; margin:0 0 12pt; }
+      pre{ white-space:pre-wrap; font-family: Consolas, Menlo, monospace; font-size:10.5pt; }
+    </style>
+  </head>
+  <body>
+    <h1>Inforium Communication Canvas — Rapport</h1>
+    <div class="meta">Datum: ${new Date().toLocaleString()} | Nodes: ${state.nodes.length}</div>
+    <pre>${text}</pre>
+  </body></html>`;
 }
-function closeModal(){ els.modalBack.style.display = "none"; }
 
-/* ============================================================================
-   17) UI helpers
-   ========================================================================== */
+/* =============================================================================
+   Download helper (Blob + createObjectURL + revokeObjectURL)
+   :contentReference[oaicite:11]{index=11}
+   ============================================================================= */
+function downloadBlob(content, filename, mimeType){
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+function todayStamp(){
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+}
+
+/* =============================================================================
+   UI helpers
+   ============================================================================= */
 function setDirty(v){
   state.dirty = v;
   els.statusPill.textContent = v ? "Niet opgeslagen" : "Opgeslagen";
-  els.statusPill.style.borderColor = v ? "rgba(230,52,42,.30)" : "rgba(23,167,115,.30)";
-  els.statusPill.style.background = v ? "rgba(230,52,42,.06)" : "rgba(23,167,115,.07)";
+  els.statusPill.style.borderColor = v ? "rgba(214,74,74,.35)" : "rgba(42,157,111,.35)";
+  els.statusPill.style.background = v ? "rgba(214,74,74,.08)" : "rgba(42,157,111,.10)";
 }
-
 function updateCounts(){ els.countPill.textContent = `${state.nodes.length} nodes`; }
-
 function toast(msg){
+  const old = els.statusPill.textContent;
   els.statusPill.textContent = msg;
-  setTimeout(() => {
-    els.statusPill.textContent = state.dirty ? "Niet opgeslagen" : "Opgeslagen";
-  }, 1400);
+  setTimeout(() => { els.statusPill.textContent = old; }, 1400);
 }
-
 function escapeHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, m => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
@@ -1217,14 +1739,13 @@ function cryptoId(){
   return (crypto?.randomUUID?.() || ("id-" + Math.random().toString(16).slice(2))).slice(0, 18);
 }
 
-/* ============================================================================
-   18) Smart defaults (kan later rules/DMN worden)
-   ========================================================================== */
+/* =============================================================================
+   Defaults
+   ============================================================================= */
 function suggestLevel(audienceId){
   if (audienceId === "laaggeletterd") return "A2/B1";
-  if (audienceId === "beperkte_gv") return "B1";
-  if (audienceId === "hoogopgeleid") return "B2";
-  return "";
+  if (audienceId === "digitaal_savvy") return "B1";
+  return "B1";
 }
 function suggestLang(audienceId){
   if (audienceId === "anderstalig") return "NL + (auto)";
@@ -1237,20 +1758,38 @@ function suggestTiming(phaseId){
   return "";
 }
 
-/* ============================================================================
-   19) Events
-   ========================================================================== */
+/* =============================================================================
+   Modal
+   ============================================================================= */
+function openModal(title, hint, text){
+  els.modalTitle.textContent = title;
+  els.modalHint.textContent = hint;
+  els.modalPre.textContent = text;
+  els.modalBack.style.display = "flex";
+}
+function closeModal(){ els.modalBack.style.display = "none"; }
+
+/* =============================================================================
+   Events
+   ============================================================================= */
 els.search.addEventListener("input", () => renderPalette(els.search.value));
 els.lens.addEventListener("change", applyLens);
+
+els.projectSearch.addEventListener("input", () => renderProjects(els.projectSearch.value));
 
 els.btnApply.addEventListener("click", applyInspector);
 els.btnDelete.addEventListener("click", () => { if(state.selectedNodeId) deleteNode(state.selectedNodeId); });
 
 els.btnSave.addEventListener("click", save);
 els.btnLoad.addEventListener("click", load);
-els.btnExport.addEventListener("click", exportJson);
-els.btnReport.addEventListener("click", reportPreview);
+
+els.btnExportJson.addEventListener("click", exportJson);
+els.btnReport.addEventListener("click", () => openModal("Rapport preview", "Tekstversie (zelfde basis als TXT/Word/PDF).", buildReportText()));
 els.btnReset.addEventListener("click", () => { if(confirm("Alles resetten?")) resetAll(); });
+
+els.btnExportTxt.addEventListener("click", exportTxt);
+els.btnExportWord.addEventListener("click", exportWord);
+els.btnExportPdf.addEventListener("click", exportPdf);
 
 els.btnCloseModal.addEventListener("click", closeModal);
 els.modalBack.addEventListener("click", (e) => { if(e.target === els.modalBack) closeModal(); });
@@ -1260,34 +1799,304 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Delete" && state.selectedNodeId) deleteNode(state.selectedNodeId);
 });
 
-/* ============================================================================
-   20) Init
-   ========================================================================== */
+els.btnLoadTemplate.addEventListener("click", () => loadTemplateIntoCanvas(els.templateSelect.value));
+els.btnSaveTemplate.addEventListener("click", saveCurrentAsTemplate);
+els.btnManageTemplates.addEventListener("click", manageTemplatesModal);
+els.templateImportFile.addEventListener("change", (e) => {
+  const f = e.target.files?.[0];
+  if(f) importTemplatesFromFile(f);
+  e.target.value = "";
+});
+
+/* =============================================================================
+   Init
+   ============================================================================= */
+
+/* =============================================================================
+   Resizers (Panels + Palette columns)
+   - Uses Pointer Events + setPointerCapture (smooth dragging)
+   ============================================================================= */
+function initAppResizers(){
+  // Left panel width
+  makeHResizer(els.resizerLeft, "leftWidth", 420, 820);
+  // Right panel width
+  makeHResizer(els.resizerRight, "rightWidth", 280, 520);
+}
+
+function initPaletteResizers(){
+  // Default: equal columns (we keep as fr initially)
+  // On first resize, we switch to pixel widths for predictability.
+  const colsEl = els.paletteCols;
+  if(!colsEl) return;
+
+  const ensurePixelVars = () => {
+    const w = colsEl.getBoundingClientRect().width;
+    const gap = 10; // matches CSS gap
+    const handle = 8; // resizer width
+    const usable = Math.max(300, w - (2*handle) - (4*gap));
+    const each = Math.max(180, usable/3);
+    const root = document.documentElement.style;
+    if(!getComputedStyle(document.documentElement).getPropertyValue("--palW1").trim()){
+      root.setProperty("--palW1", `${each}px`);
+      root.setProperty("--palW2", `${each}px`);
+      root.setProperty("--palW3", `${each}px`);
+    }
+  };
+
+  ensurePixelVars();
+  makePaletteResizer(els.palResizer1, 1);
+  makePaletteResizer(els.palResizer2, 2);
+}
+
+function makeHResizer(handleEl, cssVarName, minPx, maxPx){
+  if(!handleEl) return;
+  handleEl.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    handleEl.setPointerCapture(ev.pointerId);
+    const startX = ev.clientX;
+    const root = document.documentElement;
+    const start = parseInt(getComputedStyle(root).getPropertyValue(`--${cssVarName}`)) || (cssVarName==="leftWidth" ? 560 : 360);
+
+    const onMove = (e) => {
+      const dx = e.clientX - startX;
+      const next = clamp(start + dx, minPx, maxPx);
+      root.style.setProperty(`--${cssVarName}`, `${next}px`);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once:true });
+  });
+}
+
+function makePaletteResizer(handleEl, which){
+  if(!handleEl) return;
+  handleEl.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    handleEl.setPointerCapture(ev.pointerId);
+
+    const root = document.documentElement;
+    const colsEl = els.paletteCols;
+    const rect = colsEl.getBoundingClientRect();
+
+    const startX = ev.clientX;
+    const w1 = parseInt(getComputedStyle(root).getPropertyValue("--palW1")) || Math.round(rect.width/3);
+    const w2 = parseInt(getComputedStyle(root).getPropertyValue("--palW2")) || Math.round(rect.width/3);
+    const w3 = parseInt(getComputedStyle(root).getPropertyValue("--palW3")) || Math.round(rect.width/3);
+
+    const min = 160;
+
+    const onMove = (e) => {
+      const dx = e.clientX - startX;
+
+      if(which === 1){
+        const newW1 = clamp(w1 + dx, min, rect.width - (min*2));
+        const newW2 = clamp(w2 - dx, min, rect.width - (min*2));
+        root.style.setProperty("--palW1", `${newW1}px`);
+        root.style.setProperty("--palW2", `${newW2}px`);
+        root.style.setProperty("--palW3", `${w3}px`);
+      } else {
+        const newW2 = clamp(w2 + dx, min, rect.width - (min*2));
+        const newW3 = clamp(w3 - dx, min, rect.width - (min*2));
+        root.style.setProperty("--palW1", `${w1}px`);
+        root.style.setProperty("--palW2", `${newW2}px`);
+        root.style.setProperty("--palW3", `${newW3}px`);
+      }
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once:true });
+  });
+}
+
 renderPalette("");
+initAppResizers();
+initPaletteResizers();
 renderCanvas();
 updateInspector();
 setDirty(false);
+refreshTemplateSelect();
+renderProjects("");
 
-/* Preload mini demo */
-addNode({
-  kind:"inforium_item", tag:"Inforium", title:"Voorbereiding poli (B1)",
-  body:"Wat meenemen + praktische tips. Link/QR naar mobiel.",
-  phaseId:"vooraf", audienceId:"normaal",
-  x:24, y:44, level:"B1", lang:"NL", timing:"T-7"
-});
-addNode({
-  kind:"reminder", tag:"Actie", title:"Reminder + 1-klik afzeggen",
-  body:"T-2 reminder via app met knoppen: Bevestig / Wijzig / Zeg af.",
-  phaseId:"vooraf", audienceId:"digitaal_savvy",
-  x:24, y:44, lang:"NL", timing:"T-2"
-});
-addNode({
-  kind:"studio_video", tag:"Studio", title:"Video: route + aanmelden",
-  body:"Korte video met ondertiteling + transcript.",
-  phaseId:"dagzelf", audienceId:"slechthorend",
-  x:24, y:44, level:"B1", lang:"NL", timing:"T0", transcript:"ja"
-});
-setDirty(true);
+/* Auto: laad eerste project (zodat demo direct gevuld is) */
+loadProject(PROJECTS[0].id);
+
+/* =============================================================================
+   BUILT-IN TEMPLATES (8)
+   ============================================================================= */
+function baseTemplate(id, name, description, nodes){
+  return { id, name, description, nodes };
+}
+function node(phaseId, audienceId, x, y, kind, tag, title, body, timing, level, lang){
+  return {
+    id: "TEMPLATE_NODE_ID",
+    phaseId, audienceId, x, y,
+    kind, tag, title, body,
+    timing: timing || "", level: level || "", lang: lang || "",
+    owner: "Zorgorganisatie / afdeling",
+    alt: "", transcript: ""
+  };
+}
+
+/* --- POLI: NORMAAL --- */
+function templatePoliNormaal(){
+  const a = "normaal";
+  return baseTemplate(
+    "poli_normaal",
+    "Polikliniekbezoek — Normaal (B1)",
+    "Standaard flow: afspraak + route + voorbereiding + nabehandeling.",
+    [
+      node("vooraf", a, 24, 30, "inforium_item","Content","Afspraak bevestigd","Wat is de afspraak + datum/tijd + locatie.","T-7","B1","NL"),
+      node("vooraf", a, 24, 170,"webpage","Content","Route & parkeren","Ziekenhuis webpagina met route/parkeren/plattegrond.","T-7","B1","NL"),
+      node("vooraf", a, 290,30,"send_link","Actie","Stuur link","E-mail/app met deeplink naar route + voorbereiding.","T-7","B1","NL"),
+      node("vooraf", a, 290,170,"reminder","Actie","Reminder met knoppen","Bevestig / Wijzig / Zeg af.","T-2","B1","NL"),
+      node("dagzelf", a, 24, 30,"mondeling","Kanaal","Aanmelden balie / zuil","Wat neem je mee: ID, verwijsbrief, bril.","T0","B1","NL"),
+      node("dagzelf", a, 290,30,"inforium_item","Content","Op de poli","Waar meld je je + wachtruimte + verloop consult.","T0","B1","NL"),
+      node("nazorg", a, 24, 30,"inforium_item","Content","Nazorg / vervolg","Wat nu: uitslag, vervolgafspraak, contact.","T+1","B1","NL"),
+      node("nazorg", a, 290,30,"feedback","Actie","Korte feedback","1 minuut evaluatie (begrip + ervaring).","T+2","B1","NL"),
+    ]
+  );
+}
+
+/* --- POLI: LAAGGELETTERD --- */
+function templatePoliLaaggeletterd(){
+  const a = "laaggeletterd";
+  return baseTemplate(
+    "poli_lg",
+    "Polikliniekbezoek — Laaggeletterd (A2/B1)",
+    "Kort, 1 ding per scherm, pictogrammen/QR, check begrip.",
+    [
+      node("vooraf", a, 24, 30, "studio_video","Content","Video: zo komt u binnen","Korte video: route, ingang, aanmelden.","T-7","A2/B1","NL"),
+      node("vooraf", a, 290,30,"send_qr","Actie","QR naar telefoon","QR naar video + eenvoudige checklist.","T-7","A2/B1","NL"),
+      node("vooraf", a, 24, 170,"folder","Content","1-pager folder","A2: datum/tijd/plek + wat meenemen.","T-7","A2/B1","NL"),
+      node("vooraf", a, 290,170,"check_begrip","Actie","Check begrip","2 vragen: Wanneer? Waar? Wat meenemen?","T-6","A2/B1","NL"),
+      node("vooraf", a, 24, 310,"reminder","Actie","Reminder heel kort","“Uw afspraak is morgen. Komt u?” + 2 knoppen.","T-1","A2/B1","NL"),
+      node("dagzelf", a, 24, 30,"mondeling","Kanaal","Balie helpt","Gebruik vaste zinnen + herhaal belangrijkste.","T0","A2/B1","NL"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg in 3 stappen","1) rust 2) medicijnen 3) bellen bij…","T+1","A2/B1","NL"),
+      node("followup", a, 24, 30,"fallback","Actie","Als geen reactie","Bel-lijst / contactpersoon voor follow-up.","T+2","A2/B1","NL"),
+    ]
+  );
+}
+
+/* --- POLI: ANDERSTALIG --- */
+function templatePoliAnderstalig(){
+  const a = "anderstalig";
+  return baseTemplate(
+    "poli_anders",
+    "Polikliniekbezoek — Anderstalig (NL + auto)",
+    "Meertalige flow met simpele taal + visueel + kanaalkeuze.",
+    [
+      node("vooraf", a, 24, 30,"inforium_item","Content","Afspraak (meertalig)","Tekst in NL + auto-vertaling naar taal patiënt.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 290,30,"studio_video","Content","Video met ondertitels","Video route + aanmelden, ondertitels meertalig.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 24, 170,"send_link","Actie","Stuur link (taal)","App/e-mail met deeplink in gekozen taal.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 290,170,"reminder","Actie","Reminder in taal","Kort + knoppen bevestigen/wijzigen/afzeggen.","T-2","B1","NL + (auto)"),
+      node("dagzelf", a, 24, 30,"mondeling","Kanaal","Tolk/ondersteuning","Als nodig: tolktelefoon of pictokaart.","T0","B1","NL + (auto)"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg meertalig","Waarschuwingssignalen + contact in taal.","T+1","B1","NL + (auto)"),
+      node("nazorg", a, 24, 30,"fallback","Actie","Alternatief kanaal","Geen portal? Gebruik app/print als alternatief.","T+1","B1","NL + (auto)"),
+    ]
+  );
+}
+
+/* --- POLI: DIGITAAL SAVVY --- */
+function templatePoliDigitaal(){
+  const a = "digitaal_savvy";
+  return baseTemplate(
+    "poli_digitaal",
+    "Polikliniekbezoek — Digitaal savvy (self-service)",
+    "Alles via app/portaal: deeplinks, knoppen, reminders, check-in.",
+    [
+      node("vooraf", a, 24, 30,"portaal","Kanaal","Portaal bericht","Alles in 1 bericht: route, voorbereiding, contact.","T-7","B1","NL"),
+      node("vooraf", a, 290,30,"vragenlijst","Kanaal","Digitale intake","Korte intake + medicatie + klachten.","T-5","B1","NL"),
+      node("vooraf", a, 24, 170,"beterdichtbij","Kanaal","BeterDichtbij flow","Push + knoppen + chat bij vragen.","T-5","B1","NL"),
+      node("vooraf", a, 290,170,"reminder","Actie","2 reminders","T-2 en T-1, met 1-klik actie.","T-2","B1","NL"),
+      node("dagzelf", a, 24, 30,"send_qr","Actie","QR check-in","QR in app voor snelle aanmelding.","T0","B1","NL"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg + afspraak plannen","Link naar agenda/afspraakmodule.","T+1","B1","NL"),
+      node("followup", a, 24, 30,"feedback","Actie","Feedback in app","NPS + begrip-check.","T+3","B1","NL"),
+    ]
+  );
+}
+
+/* --- VERRICHTING/OPERATIE: NORMAAL --- */
+function templateVerrichtingNormaal(){
+  const a = "normaal";
+  return baseTemplate(
+    "verr_normaal",
+    "Verrichting/operatie — Normaal (B1)",
+    "Voorbereiding (nuchter/medicatie), dag zelf, nazorg + alarmsymptomen.",
+    [
+      node("vooraf", a, 24, 30,"inforium_item","Content","Voorbereiding","Nuchter? Medicatie? Wat meenemen?","T-7","B1","NL"),
+      node("vooraf", a, 290,30,"studio_video","Content","Video: wat gebeurt er","Uitleg verrichting + wat voelt u.","T-7","B1","NL"),
+      node("vooraf", a, 24, 170,"vragenlijst","Kanaal","Checklist / contra-indicaties","Allergieën, antistolling, vervoer naar huis.","T-5","B1","NL"),
+      node("vooraf", a, 290,170,"reminder","Actie","Reminder nuchter/medicatie","T-1: laatste check, knoppen: OK / vraag.","T-1","B1","NL"),
+      node("dagzelf", a, 24, 30,"mondeling","Kanaal","Instructie op locatie","Herhaal belangrijkste + toestemming.","T0","B1","NL"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg + alarmsignalen","Wanneer bellen? Pijn/koorts/bloedverlies.","T+1","B1","NL"),
+      node("followup", a, 24, 30,"send_link","Actie","Uitslag + vervolg","Uitslag in portaal/app + vervolgafspraak.","T+7","B1","NL"),
+    ]
+  );
+}
+
+/* --- VERRICHTING/OPERATIE: LAAGGELETTERD --- */
+function templateVerrichtingLaaggeletterd(){
+  const a = "laaggeletterd";
+  return baseTemplate(
+    "verr_lg",
+    "Verrichting/operatie — Laaggeletterd (A2/B1)",
+    "Heel kort + visueel, 1-pager + video, extra begrip-check, fallback bellen.",
+    [
+      node("vooraf", a, 24, 30,"studio_video","Content","Video: voorbereiding","Kort: nuchter, medicijnen, vervoer.","T-7","A2/B1","NL"),
+      node("vooraf", a, 290,30,"folder","Content","1-pager met pictos","Wat doen / wat niet doen.","T-7","A2/B1","NL"),
+      node("vooraf", a, 24, 170,"send_qr","Actie","QR naar checklist","QR naar video + 3 bullets.","T-7","A2/B1","NL"),
+      node("vooraf", a, 290,170,"check_begrip","Actie","Begrip-check","“Wanneer stop je met eten?” + “Wie haalt je op?”","T-6","A2/B1","NL"),
+      node("vooraf", a, 24, 310,"reminder","Actie","Reminder kort","“Morgen is de verrichting. Nuchter blijven.”","T-1","A2/B1","NL"),
+      node("nazorg", a, 24, 30,"inforium_item","Content","Nazorg 3 stappen","Rust • drinken • bellen bij…","T+1","A2/B1","NL"),
+      node("followup", a, 290,30,"fallback","Actie","Als twijfel: bel","Belnummer groot + wanneer bellen.","T+1","A2/B1","NL"),
+    ]
+  );
+}
+
+/* --- VERRICHTING/OPERATIE: ANDERSTALIG --- */
+function templateVerrichtingAnderstalig(){
+  const a = "anderstalig";
+  return baseTemplate(
+    "verr_anders",
+    "Verrichting/operatie — Anderstalig (NL + auto)",
+    "Meertalige instructies, extra nadruk op nuchter/medicatie + heldere reminders.",
+    [
+      node("vooraf", a, 24, 30,"inforium_item","Content","Voorbereiding (meertalig)","NL + auto-vertaling. Nuchter/medicatie/ vervoer.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 290,30,"studio_video","Content","Video met ondertitels","Eenvoudig + ondertiteling in taal patiënt.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 24, 170,"send_link","Actie","Stuur link (taal)","Deeplink naar instructies in gekozen taal.","T-7","B1","NL + (auto)"),
+      node("vooraf", a, 290,170,"reminder","Actie","Reminder nuchter","Kort + knoppen (OK / vraag).","T-1","B1","NL + (auto)"),
+      node("dagzelf", a, 24, 30,"mondeling","Kanaal","Check met pictokaart","Begrip check op locatie, evt. tolk.","T0","B1","NL + (auto)"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg + alarmsignalen (taal)","Wanneer bellen, in taal patiënt.","T+1","B1","NL + (auto)"),
+    ]
+  );
+}
+
+/* --- VERRICHTING/OPERATIE: DIGITAAL SAVVY --- */
+function templateVerrichtingDigitaal(){
+  const a = "digitaal_savvy";
+  return baseTemplate(
+    "verr_digitaal",
+    "Verrichting/operatie — Digitaal savvy (self-service)",
+    "Portaal/app als ‘single source of truth’, intake digitaal, reminders, uitslagflow.",
+    [
+      node("vooraf", a, 24, 30,"portaal","Kanaal","Portaal: complete stappenlijst","Voorbereiding + videos + FAQs in 1 flow.","T-10","B1","NL"),
+      node("vooraf", a, 290,30,"vragenlijst","Kanaal","Digitale pre-check","Antistolling/allergie/klachten/ vervoer.","T-7","B1","NL"),
+      node("vooraf", a, 24, 170,"beterdichtbij","Kanaal","Chat bij vragen","Asynchroon vragen stellen.","T-7","B1","NL"),
+      node("vooraf", a, 290,170,"reminder","Actie","Reminder nuchter + medicatie","T-1 met knoppen + deeplink naar checklist.","T-1","B1","NL"),
+      node("dagzelf", a, 24, 30,"send_qr","Actie","QR check-in","QR voor aanmelding + route in app.","T0","B1","NL"),
+      node("nazorg", a, 290,30,"inforium_item","Content","Nazorg + alarmsignalen","Kort + direct bellen-knop.","T+1","B1","NL"),
+      node("followup", a, 24, 30,"send_link","Actie","Uitslag + vervolgafspraak","Uitslag in portaal + afspraakplanner.","T+7","B1","NL"),
+      node("followup", a, 290,30,"feedback","Actie","Feedback","Korte survey + begrip.","T+3","B1","NL"),
+    ]
+  );
+}
 </script>
 </body>
 </html>
